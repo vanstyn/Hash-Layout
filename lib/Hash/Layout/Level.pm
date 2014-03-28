@@ -12,7 +12,7 @@ has 'delimiter', is => 'ro', isa => Maybe[Str], default => sub { undef };
 sub _peel_key {
   my ($self,$key) = @_;
   my $del = $self->delimiter or return $key;
-  return ($key =~ /${del}/) ? split(/${del}/,$key,2) : ('*',$key);
+  return ($key =~ /\Q${del}\E/) ? split(/\Q${del}\E/,$key,2) : ('*',$key);
 }
 
 

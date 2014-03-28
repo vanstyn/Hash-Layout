@@ -2,7 +2,7 @@ package Hash::Layout;
 use strict;
 use warnings;
 
-# ABSTRACT: Deep hashes with predefined levels
+# ABSTRACT: Deep hashes with predefined layouts
 
 our $VERSION = 0.01;
 
@@ -18,12 +18,37 @@ has 'levels', is => 'ro', isa => ArrayRef[
 
 sub num_levels { scalar(@{(shift)->levels}) }
 
-has 'default_value', is => 'ro', default => sub { 1 };
+has 'default_value',     is => 'ro', default => sub { 1 };
+has 'allow_deep_values', is => 'ro', isa => Bool, default => sub { 1 };
+has 'deep_delimiter',    is => 'ro', isa => Str, default => sub { '.' };
 
-has 'Hash', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
+has '_Hash', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
 
 # Clears the Hash of any existing data
-sub reset { %{(shift)->Hash} = () }
+sub reset { %{(shift)->_Hash} = () }
+
+
+sub BUILD {
+  my $self = shift;
+  $self->_post_validate;
+}
+
+sub _post_validate {
+  my $self = shift;
+
+  if($self->allow_deep_values) {
+    for my $Lvl (@{$self->levels}) {
+      die join("",
+        "Level delimiters must be different from the deep_delimiter ('",
+          $self->deep_delimiter,"').\n",
+        "Please specify a different level delimiter or change 'deep_delimiter'"
+      ) if ($Lvl->delimiter && $Lvl->delimiter eq $self->deep_delimiter);
+    }
+  }
+
+}
+
+
 
 
 sub coercer {
@@ -62,6 +87,12 @@ sub resolve_key_path {
     push @path, $k;
     last unless ($leftover && $leftover ne '');
     $key = $leftover;
+  }
+  
+  if($self->allow_deep_values) {
+    my $last = pop @path;
+    my $del = $self->deep_delimiter;
+    push @path, split(/\Q${del}\E/,$last);
   }
   
   return @path;

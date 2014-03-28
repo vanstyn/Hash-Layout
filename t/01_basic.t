@@ -45,6 +45,30 @@ is_deeply(
   'resolve_key_path (4)'
 );
 
+is_deeply(
+  [ $HL->resolve_key_path('Film:column_info.foo.bar.blah') ],
+  [ qw(Film * column_info foo bar blah) ],
+  'resolve_key_path (5)'
+);
+
+ok(
+  my $HL2 = Hash::Layout->new({
+    allow_deep_values => 0,
+    levels => [
+      { name => 'source', delimiter => ':' },
+      { name => 'column', delimiter => '/' }, 
+      { name => 'info' }, 
+    ]
+  }),
+  "Instantiate new Hash::Layout with 'allow_deep_values' off"
+);
+
+is_deeply(
+  [ $HL2->resolve_key_path('Film:column_info.foo.bar.blah') ],
+  [ qw(Film * column_info.foo.bar.blah) ],
+  'resolve_key_path (5a)'
+);
+
 done_testing;
 
 
