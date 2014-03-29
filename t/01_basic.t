@@ -46,9 +46,15 @@ is_deeply(
 );
 
 is_deeply(
+  [ $HL->resolve_key_path('foo/') ],
+  [ qw(* foo) ],
+  'resolve_key_path (5)'
+);
+
+is_deeply(
   [ $HL->resolve_key_path('Film:column_info.foo.bar.blah') ],
   [ qw(Film * column_info foo bar blah) ],
-  'resolve_key_path (5)'
+  'resolve_key_path (6)'
 );
 
 ok(
@@ -66,8 +72,64 @@ ok(
 is_deeply(
   [ $HL2->resolve_key_path('Film:column_info.foo.bar.blah') ],
   [ qw(Film * column_info.foo.bar.blah) ],
-  'resolve_key_path (5a)'
+  'resolve_key_path (6a)'
 );
+
+
+ok(
+  my $HL3 = Hash::Layout->new({
+    levels => [
+      { delimiter => '/' },
+      { delimiter => '/' }, 
+      { delimiter => '/' }, 
+      {}, 
+    ]
+  }),
+  "Instantiate new Hash::Layout with levels using the same delimiter"
+);
+
+
+# These aren't all that useful as APIs since mapping for partial paths
+# is at best ambiguous when all the levels use the same delimiter. But
+# we're including these tests to make sure that the mapping for these
+# at least remains consistent:
+is_deeply(
+  [ $HL3->resolve_key_path('foo/bar') ],
+  [ qw(foo * * bar) ],
+  'resolve_key_path (7)'
+);
+
+is_deeply(
+  [ $HL3->resolve_key_path('foo/*/*/bar') ],
+  [ qw(foo * * bar) ],
+  'resolve_key_path (8)'
+);
+
+is_deeply(
+  [ $HL3->resolve_key_path('*/*/foo/bar') ],
+  [ qw(* * foo bar) ],
+  'resolve_key_path (9)'
+);
+
+is_deeply(
+  [ $HL3->resolve_key_path('foo/bar/') ],
+  [ qw(foo bar) ],
+  'resolve_key_path (10)'
+);
+
+is_deeply(
+  [ $HL3->resolve_key_path('foo') ],
+  [ qw(* * * foo) ],
+  'resolve_key_path (11)'
+);
+
+# TODO: the way this is resolved should probably be changed:
+is_deeply(
+  [ $HL3->resolve_key_path('/foo') ],
+  [ qw(* * * /foo) ],
+  'resolve_key_path (12)'
+);
+
 
 done_testing;
 
@@ -77,5 +139,5 @@ done_testing;
 #
 #use Data::Dumper::Concise;
 #print STDERR "\n\n" . Dumper(
-#  $HL->resolve_key_path('Film:rental_rate/column_info')
+#  $HL3->resolve_key_path('foo/Film/')
 #) . "\n\n";

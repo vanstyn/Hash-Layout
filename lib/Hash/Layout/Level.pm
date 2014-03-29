@@ -5,9 +5,13 @@ use warnings;
 use Moo;
 use Types::Standard qw(:all);
 
-has 'name',      is => 'ro', isa => Str, required => 1;
 has 'index',     is => 'ro', isa => Int, required => 1;
 has 'delimiter', is => 'ro', isa => Maybe[Str], default => sub {undef};
+
+has 'name',      is => 'ro', isa => Str, lazy => 1, default => sub {
+  my $self = shift;
+  return 'level-' . $self->index;
+};
 
 has 'edge_keys', is => 'ro', isa => Maybe[
   Map[Str,Bool]
