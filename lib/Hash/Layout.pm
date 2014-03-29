@@ -8,7 +8,7 @@ our $VERSION = 0.01;
 
 use Moo;
 use Types::Standard qw(:all);
-use Scalar::Util qw(blessed);
+use Scalar::Util qw(blessed looks_like_number);
 
 use Hash::Layout::Level;
 
@@ -27,6 +27,23 @@ has '_Hash', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
 
 # Clears the Hash of any existing data
 sub reset { %{(shift)->_Hash} = () }
+
+
+around BUILDARGS => sub {
+  my ($orig, $self, @args) = @_;
+  my %opt = (ref($args[0]) eq 'HASH') ? %{ $args[0] } : @args; # <-- arg as hash or hashref
+  
+  # Accept 'levels' as shorthand numeric value:
+  if($opt{levels} && looks_like_number $opt{levels}) {
+    my $num = $opt{levels} - 1;
+    $opt{delimiter} ||= '/';
+    my @levels = ({ delimiter => $opt{delimiter} }) x $num;
+    $opt{levels} = [ @levels, {} ];
+    delete $opt{delimiter};
+  }
+
+  return $self->$orig(%opt);
+};
 
 
 sub BUILD {

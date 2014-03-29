@@ -76,6 +76,88 @@ is_deeply(
 );
 
 
+sub resolve_key_path_tests {
+  my $HL3 = shift;
+
+  # These aren't all that useful as APIs since mapping for partial paths
+  # is at best ambiguous when all the levels use the same delimiter. But
+  # we're including these tests to make sure that the mapping for these
+  # at least remains consistent:
+  is_deeply(
+    [ $HL3->resolve_key_path('foo/bar') ],
+    [ qw(foo * * bar) ],
+    'resolve_key_path (7)'
+  );
+
+  is_deeply(
+    [ $HL3->resolve_key_path('foo/*/*/bar') ],
+    [ qw(foo * * bar) ],
+    'resolve_key_path (8)'
+  );
+
+  is_deeply(
+    [ $HL3->resolve_key_path('*/*/foo/bar') ],
+    [ qw(* * foo bar) ],
+    'resolve_key_path (9)'
+  );
+
+  is_deeply(
+    [ $HL3->resolve_key_path('foo/bar/') ],
+    [ qw(foo bar) ],
+    'resolve_key_path (10)'
+  );
+
+  is_deeply(
+    [ $HL3->resolve_key_path('foo') ],
+    [ qw(* * * foo) ],
+    'resolve_key_path (11)'
+  );
+
+  # TODO: the way this is resolved should probably be changed:
+  is_deeply(
+    [ $HL3->resolve_key_path('/foo') ],
+    [ qw(* * * /foo) ],
+    'resolve_key_path (12)'
+  );
+
+  is_deeply(
+    [ $HL3->resolve_key_path('foo',1) ],
+    [ qw(* * foo) ],
+    'resolve_key_path (13) - relative to the second level (index 1)'
+  );
+
+  is_deeply(
+    [ $HL3->resolve_key_path('foo',3) ],
+    [ qw(foo) ],
+    'resolve_key_path (14) - relative to the fourth level (index 3)'
+  );
+
+  is_deeply(
+    [ $HL3->resolve_key_path('foo/bar',2) ],
+    [ qw(foo bar) ],
+    'resolve_key_path (15) - relative to the third level (index 2)'
+  );
+
+  is_deeply(
+    [ $HL3->resolve_key_path('foo/bar/blah',50) ],
+    [ qw(foo/bar/blah) ],
+    'resolve_key_path (16) - relative to a non-existant level index'
+  );
+
+  is_deeply(
+    [ $HL3->resolve_key_path('foo/bar/blah.plus.deep.path.boo/baz',50) ],
+    [ qw(foo/bar/blah plus deep path boo/baz) ],
+    'resolve_key_path (17) - relative to a non-existant level index with deep value'
+  );
+
+  is_deeply(
+    [ $HL3->resolve_key_path('foo.bar/baz.boo') ],
+    [ qw(foo.bar * * baz boo) ],
+    'resolve_key_path (18) - level keys with deep delimiter character'
+  );
+}
+
+
 ok(
   my $HL3 = Hash::Layout->new({
     levels => [
@@ -88,83 +170,14 @@ ok(
   "Instantiate new Hash::Layout with levels using the same delimiter"
 );
 
+&resolve_key_path_tests($HL3);
 
-# These aren't all that useful as APIs since mapping for partial paths
-# is at best ambiguous when all the levels use the same delimiter. But
-# we're including these tests to make sure that the mapping for these
-# at least remains consistent:
-is_deeply(
-  [ $HL3->resolve_key_path('foo/bar') ],
-  [ qw(foo * * bar) ],
-  'resolve_key_path (7)'
+ok(
+  $HL3 = Hash::Layout->new({ levels => 4 }),
+  "Instantiate new Hash::Layout with shorthand numeric 'levels' param"
 );
 
-is_deeply(
-  [ $HL3->resolve_key_path('foo/*/*/bar') ],
-  [ qw(foo * * bar) ],
-  'resolve_key_path (8)'
-);
-
-is_deeply(
-  [ $HL3->resolve_key_path('*/*/foo/bar') ],
-  [ qw(* * foo bar) ],
-  'resolve_key_path (9)'
-);
-
-is_deeply(
-  [ $HL3->resolve_key_path('foo/bar/') ],
-  [ qw(foo bar) ],
-  'resolve_key_path (10)'
-);
-
-is_deeply(
-  [ $HL3->resolve_key_path('foo') ],
-  [ qw(* * * foo) ],
-  'resolve_key_path (11)'
-);
-
-# TODO: the way this is resolved should probably be changed:
-is_deeply(
-  [ $HL3->resolve_key_path('/foo') ],
-  [ qw(* * * /foo) ],
-  'resolve_key_path (12)'
-);
-
-is_deeply(
-  [ $HL3->resolve_key_path('foo',1) ],
-  [ qw(* * foo) ],
-  'resolve_key_path (13) - relative to the second level (index 1)'
-);
-
-is_deeply(
-  [ $HL3->resolve_key_path('foo',3) ],
-  [ qw(foo) ],
-  'resolve_key_path (14) - relative to the fourth level (index 3)'
-);
-
-is_deeply(
-  [ $HL3->resolve_key_path('foo/bar',2) ],
-  [ qw(foo bar) ],
-  'resolve_key_path (15) - relative to the third level (index 2)'
-);
-
-is_deeply(
-  [ $HL3->resolve_key_path('foo/bar/blah',50) ],
-  [ qw(foo/bar/blah) ],
-  'resolve_key_path (16) - relative to a non-existant level index'
-);
-
-is_deeply(
-  [ $HL3->resolve_key_path('foo/bar/blah.plus.deep.path.boo/baz',50) ],
-  [ qw(foo/bar/blah plus deep path boo/baz) ],
-  'resolve_key_path (17) - relative to a non-existant level index with deep value'
-);
-
-is_deeply(
-  [ $HL3->resolve_key_path('foo.bar/baz.boo') ],
-  [ qw(foo.bar * * baz boo) ],
-  'resolve_key_path (18) - level keys with deep delimiter character'
-);
+&resolve_key_path_tests($HL3);
 
 
 done_testing;
