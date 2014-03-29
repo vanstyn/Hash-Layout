@@ -9,6 +9,7 @@ our $VERSION = 0.01;
 use Moo;
 use Types::Standard qw(:all);
 use Scalar::Util qw(blessed looks_like_number);
+use Clone;
 
 use Hash::Layout::Level;
 
@@ -24,9 +25,12 @@ has 'allow_deep_values', is => 'ro', isa => Bool, default => sub { 1 };
 has 'deep_delimiter',    is => 'ro', isa => Str, default => sub { '.' };
 
 has '_Hash', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
+sub Data { (shift)->_Hash }
 
 # Clears the Hash of any existing data
 sub reset { %{(shift)->_Hash} = () }
+
+sub clone { Clone::clone(shift) }
 
 
 around BUILDARGS => sub {
@@ -80,20 +84,41 @@ sub coerce {
 }
 
 
+sub load {
+  my $self = shift;
+  return $self->_load(0,$self->_Hash,@_);
+}
+
 sub _load {
   my ($self, $index, $noderef, @args) = @_;
   
   my $Lvl = $self->levels->[$index] or die "Bad level index '$index'";
+  my $last_level = ! $self->levels->[$index+1];
   
   for my $arg (@args) {
     if(ref $arg) {
       if(ref($arg) eq 'HASH') {
         for my $key (keys %$arg) {
           my $val = $arg->{$key};
-        
-        
-          # In progress ....
-        
+          my $eval_path = $self->_eval_key_path($key,$index);
+          
+          if($val && ref($val) eq 'HASH' && ! $last_level) {
+            # Overwrite any existing non-hash value (TODO: make behavior an option)
+            $noderef->{$key} = {} unless (
+              $noderef->{$key} && 
+              ref($noderef->{$key}) &&
+              ref($noderef->{$key}) ne 'HASH'
+            );
+            # Set via recursive:
+            $self->_load($index+1,$noderef->{$key},$val);
+          }
+          else {
+            # clone refs first to be safe:
+            $val = ref $val ? Clone::clone($val) : $val;
+            
+            # Set the value directly:
+            eval join('','$noderef->',$eval_path,' = $val');
+          }
         
         }
       
@@ -107,6 +132,8 @@ sub _load {
       $self->_load($index,$noderef,{ $arg => $self->default_value });
     }
   }
+  
+  return $self;
 }
 
 
@@ -123,8 +150,8 @@ sub set {
 
 
 sub _eval_key_path {
-  my ($self, $key) = @_;
-  my @path = $self->resolve_key_path($key);
+  my ($self, $key, $index) = @_;
+  my @path = $self->resolve_key_path($key,$index);
   return undef unless (scalar(@path) > 0);
   return join('',map { '{"'.$_.'"}' } @path);
 }
