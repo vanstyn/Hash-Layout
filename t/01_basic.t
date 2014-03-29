@@ -130,6 +130,42 @@ is_deeply(
   'resolve_key_path (12)'
 );
 
+is_deeply(
+  [ $HL3->resolve_key_path('foo',1) ],
+  [ qw(* * foo) ],
+  'resolve_key_path (13) - relative to the second level (index 1)'
+);
+
+is_deeply(
+  [ $HL3->resolve_key_path('foo',3) ],
+  [ qw(foo) ],
+  'resolve_key_path (14) - relative to the fourth level (index 3)'
+);
+
+is_deeply(
+  [ $HL3->resolve_key_path('foo/bar',2) ],
+  [ qw(foo bar) ],
+  'resolve_key_path (15) - relative to the third level (index 2)'
+);
+
+is_deeply(
+  [ $HL3->resolve_key_path('foo/bar/blah',50) ],
+  [ qw(foo/bar/blah) ],
+  'resolve_key_path (16) - relative to a non-existant level index'
+);
+
+is_deeply(
+  [ $HL3->resolve_key_path('foo/bar/blah.plus.deep.path.boo/baz',50) ],
+  [ qw(foo/bar/blah plus deep path boo/baz) ],
+  'resolve_key_path (17) - relative to a non-existant level index with deep value'
+);
+
+is_deeply(
+  [ $HL3->resolve_key_path('foo.bar/baz.boo') ],
+  [ qw(foo.bar * * baz boo) ],
+  'resolve_key_path (18) - level keys with deep delimiter character'
+);
+
 
 done_testing;
 
@@ -139,5 +175,5 @@ done_testing;
 #
 #use Data::Dumper::Concise;
 #print STDERR "\n\n" . Dumper(
-#  $HL3->resolve_key_path('foo/Film/')
+#  $HL3->resolve_key_path('foo.bar/baz.boo')
 #) . "\n\n";
