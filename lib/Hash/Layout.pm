@@ -9,6 +9,7 @@ our $VERSION = 0.01;
 use Moo;
 use Types::Standard qw(:all);
 use Scalar::Util qw(blessed looks_like_number);
+use Hash::Merge::Simple 'merge';
 use Clone;
 
 use Hash::Layout::Level;
@@ -96,44 +97,66 @@ sub _load {
   my $last_level = ! $self->levels->[$index+1];
   
   for my $arg (@args) {
-    if(ref $arg) {
-      if(ref($arg) eq 'HASH') {
-        for my $key (keys %$arg) {
-          my $val = $arg->{$key};
-          my $eval_path = $self->_eval_key_path($key,$index);
-          
-          if($val && ref($val) eq 'HASH' && ! $last_level) {
-            # Overwrite any existing non-hash value (TODO: make behavior an option)
-            $noderef->{$key} = {} unless (
-              $noderef->{$key} && 
-              ref($noderef->{$key}) &&
-              ref($noderef->{$key}) ne 'HASH'
-            );
+    
+    my $force_composit = 0;
+    unless (ref $arg) {
+      # hanging string/scalar, convert using default value
+      $arg = { $arg => $self->default_value };
+      $force_composit = 1;
+    }
+    
+    die "Cannot load non-hash reference!" unless (ref($arg) eq 'HASH');
+    
+    for my $key (keys %$arg) {
+      die "Only scalar/string keys are allowed" 
+        unless (defined $key && ! ref($key));
+      
+      my $val = $arg->{$key};
+      
+      if( $force_composit || $self->_is_composit_key($key,$index) ) {
+        my @path = $self->resolve_key_path($key,$index);
+        my $lkey = pop @path;
+        my $hval = {};
+        $self->_init_hash_path($hval,@path)->{$lkey} = $val;
+        $self->_load($index,$noderef,$hval);
+      }
+      else {
+        if(ref $val && ref($val) eq 'HASH') {
+          $self->_init_hash_path($noderef,$key);
+          if($last_level) {
+            $noderef->{$key} = merge($noderef->{$key}, $val);
+          }
+          else {
             # Set via recursive:
             $self->_load($index+1,$noderef->{$key},$val);
           }
-          else {
-            # clone refs first to be safe:
-            $val = ref $val ? Clone::clone($val) : $val;
-            
-            # Set the value directly:
-            eval join('','$noderef->',$eval_path,' = $val');
-          }
-        
         }
-      
+        else {
+          $noderef->{$key} = $val;
+        }
       }
-      else {
-        die "Cannot load non-hash";
-      }
-    }
-    else {
-      # hanging string/scalar, recall with default value
-      $self->_load($index,$noderef,{ $arg => $self->default_value });
     }
   }
   
   return $self;
+}
+
+
+sub _init_hash_path {
+  my ($self,$hash,@path) = @_;
+  die "Not a hash" unless (ref $hash && ref($hash) eq 'HASH');
+  die "No path supplied" unless (scalar(@path) > 0);
+  
+  my $ev_path = $self->_as_eval_path( @path );
+  
+  my $hval;
+  eval join('','$hash->',$ev_path,' //= {}');
+  eval join('','$hval = $hash->',$ev_path);
+  eval join('','$hash->',$ev_path,' = {}') unless (
+    ref $hval && ref($hval) eq 'HASH'
+  );
+  
+  return $hval;
 }
 
 
@@ -149,13 +172,41 @@ sub set {
 }
 
 
-sub _eval_key_path {
-  my ($self, $key, $index) = @_;
-  my @path = $self->resolve_key_path($key,$index);
-  return undef unless (scalar(@path) > 0);
-  return join('',map { '{"'.$_.'"}' } @path);
+sub _as_eval_path {
+  my ($self,@path) = @_;
+  return (scalar(@path) > 0) ? join('',
+    map { '{"'.$_.'"}' } @path
+  ) : undef;
 }
 
+sub _eval_key_path {
+  my ($self, $key, $index) = @_;
+  return $self->_as_eval_path(
+    $self->resolve_key_path($key,$index)
+  );
+}
+
+# recursively scans the supplied key for any special delimiters defined
+# by any of the levels, or the deep delimiter, if deep values are enabled
+sub _is_composit_key {
+  my ($self, $key, $index) = @_;
+  $index ||= 0;
+  
+  my $Lvl = $self->levels->[$index];
+
+  if ($Lvl) {
+    return $Lvl->_peel_str_key($key) || $self->_is_composit_key($key,$index+1);
+  }
+  else {
+    if($self->allow_deep_values) {
+      my $del = $self->deep_delimiter;
+      return $key =~ /\Q${del}\E/;
+    }
+    else {
+      return 0;
+    }
+  }
+}
 
 sub resolve_key_path {
   my ($self, $key, $index) = @_;

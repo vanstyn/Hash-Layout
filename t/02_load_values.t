@@ -53,4 +53,50 @@ is_deeply(
 );
 
 
+
+is_deeply(
+  $HL->clone->load(
+  {
+    "*" => {
+      "*/column_info" => 1
+    },
+    'Film:id/' => {
+      relationship_info => 1
+    },
+    Film => {
+      rental_rate => {
+        column_info => {
+          foo => {
+            baz => 2,
+            blah => 1
+          }
+        }
+      }
+    }
+  }
+  )->Data,
+  {
+    "*" => {
+      "*" => {
+        column_info => 1
+      }
+    },
+    Film => {
+      id => {
+        relationship_info => 1
+      },
+      rental_rate => {
+        column_info => {
+          foo => {
+            baz => 2,
+            blah => 1
+          }
+        }
+      }
+    }
+  },
+  "load values (2)"
+);
+
+
 done_testing;
