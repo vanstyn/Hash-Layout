@@ -95,7 +95,6 @@ sub _load {
   
   my $Lvl = $self->levels->[$index] or die "Bad level index '$index'";
   my $last_level = ! $self->levels->[$index+1];
-  my $no_fill = 1;
   
   for my $arg (@args) {
     
@@ -113,8 +112,10 @@ sub _load {
         unless (defined $key && ! ref($key));
       
       my $val = $arg->{$key};
+      my $is_hashval = ref $val && ref($val) eq 'HASH';
       
       if( $force_composit || $self->_is_composit_key($key,$index) ) {
+        my $no_fill = $is_hashval;
         my @path = $self->resolve_key_path($key,$index,$no_fill);
         my $lkey = pop @path;
         my $hval = {};
@@ -122,7 +123,7 @@ sub _load {
         $self->_load($index,$noderef,$hval);
       }
       else {
-        if(ref $val && ref($val) eq 'HASH') {
+        if($is_hashval) {
           $self->_init_hash_path($noderef,$key);
           if($last_level) {
             $noderef->{$key} = merge($noderef->{$key}, $val);
