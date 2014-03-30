@@ -28,10 +28,28 @@ has 'no_fill',           is => 'ro', isa => Bool, default => sub { 0 };
 has 'no_pad',            is => 'ro', isa => Bool, default => sub { 0 };
 
 has '_Hash', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
+has '_all_level_keys', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
+
 sub Data { (shift)->_Hash }
 
+sub level_keys {
+  my ($self, $index) = @_;
+  die 'level_keys() expects level index argument' 
+    unless (looks_like_number $index);
+    
+  die "No such level index '$index'" 
+    unless ($self->levels->[$index]);
+
+  return $self->_all_level_keys->{$index} || {};
+}
+
 # Clears the Hash of any existing data
-sub reset { %{(shift)->_Hash} = () }
+sub reset {
+  my $self = shift;
+  %{$self->_Hash}       = ();
+  %{$self->_all_level_keys} = ();
+  return $self;
+}
 
 sub clone { Clone::clone(shift) }
 
@@ -125,6 +143,7 @@ sub _load {
         $self->_load($index,$noderef,$hval);
       }
       else {
+        $self->_all_level_keys->{$index}{$key} = 1;
         if($is_hashval) {
           $self->_init_hash_path($noderef,$key);
           if($last_level) {
