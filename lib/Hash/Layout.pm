@@ -24,6 +24,8 @@ has 'default_key',       is => 'ro', isa => Str, default => sub { '*' };
 has 'default_value',     is => 'ro', default => sub { 1 };
 has 'allow_deep_values', is => 'ro', isa => Bool, default => sub { 1 };
 has 'deep_delimiter',    is => 'ro', isa => Str, default => sub { '.' };
+has 'no_fill',           is => 'ro', isa => Bool, default => sub { 0 };
+has 'no_pad',            is => 'ro', isa => Bool, default => sub { 0 };
 
 has '_Hash', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
 sub Data { (shift)->_Hash }
@@ -213,7 +215,7 @@ sub _is_composit_key {
 sub resolve_key_path {
   my ($self, $key, $index, $no_fill) = @_;
   $index ||= 0;
-  $no_fill ||= 0;
+  $no_fill ||= $self->no_fill;
   
   my $Lvl = $self->levels->[$index];
   my $last_level = ! $self->levels->[$index+1];
@@ -235,7 +237,7 @@ sub resolve_key_path {
       # (and we've already peeled at least one key)
       my @path = $self->resolve_key_path($key,$index+1,$no_fill);
       my $as_is = $last_level || ($no_fill && $self->{_composit_key_peeled});
-      return $as_is ? @path : ($self->default_key,@path);
+      return $self->no_pad || $as_is ? @path : ($self->default_key,@path);
     }
   }
   else {

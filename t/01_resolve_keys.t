@@ -180,6 +180,69 @@ ok(
 &resolve_key_path_tests($HL3);
 
 
+is_deeply(
+  [ $HL3->resolve_key_path('foo/bar',0,1) ],
+  [ qw(foo bar) ], #<-- would be [ qw(foo * * bar) ] without 'no_fill'
+  'resolve_key_path (19) - no_fill via one-off argument'
+);
+
+ok(
+  my $HL4 = Hash::Layout->new({
+    no_fill => 1,
+    levels  => 4 
+  }),
+  "Instantiate new Hash::Layout with levels using the same delimiter + no_fill"
+);
+
+is_deeply(
+  [ $HL4->resolve_key_path('foo/bar') ],
+  [ qw(foo bar) ], #<-- would be [ qw(foo * * bar) ] without 'no_fill'
+  'resolve_key_path (20) - no_fill via build param'
+);
+
+is_deeply(
+  [ $HL4->resolve_key_path('foo.bar/baz.boo') ],
+  [ qw(foo.bar baz boo) ],
+  'resolve_key_path (21) - level keys with deep delimiter character (no_fill)'
+);
+
+is_deeply(
+  [ $HL4->resolve_key_path('foo') ],
+  [ qw(* * * foo) ],
+  'resolve_key_path (22) - no_fill doesn\'t apply to padding'
+);
+
+
+ok(
+  my $HL5 = Hash::Layout->new({
+    no_pad => 1,
+    levels  => 4 
+  }),
+  "Instantiate new Hash::Layout with levels using the same delimiter + no_pad"
+);
+
+
+is_deeply(
+  [ $HL5->resolve_key_path('foo') ],
+  [ qw(foo) ], #<-- would be [ qw(* * * foo) ] without 'no_pad'
+  'resolve_key_path (23) - no_pad'
+);
+
+
+is_deeply(
+  [ $HL5->resolve_key_path('foo/bar') ],
+  [ qw(foo bar) ], #<-- would be [ qw(foo * * bar) ] without 'no_pad'
+  'resolve_key_path (24) - no_pad implies no_fill'
+);
+
+is_deeply(
+  [ $HL5->resolve_key_path('foo.bar/baz.boo') ],
+  [ qw(foo.bar baz boo) ],
+  'resolve_key_path (25) - level keys with deep delimiter character (no_pad)'
+);
+
+
+
 done_testing;
 
 

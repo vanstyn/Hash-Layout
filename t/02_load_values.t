@@ -99,12 +99,10 @@ is_deeply(
       relationship_info => 1
     },
     Film => {
-      rental_rate => {
-        column_info => {
-          foo => {
-            baz => 2,
-            blah => 1
-          }
+      'rental_rate/column_info' => {
+        foo => {
+          baz => 2,
+          blah => 1
         }
       }
     }
