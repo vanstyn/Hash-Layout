@@ -27,6 +27,13 @@ my $target1 = {
       column_info => 1
     }
   },
+  Album => {
+    "*" => {
+      column_info => {
+        blah => 1
+      }
+    }
+  },
   Film => {
     id => {
       relationship_info => 1
@@ -45,6 +52,7 @@ my $target1 = {
 is_deeply(
   $HL->clone->load(
     'column_info',
+    'Album:*/column_info.blah',
     'Film:id/relationship_info',
     'Film:rental_rate/column_info.foo.blah',
     { 'Film:rental_rate/column_info.foo.baz' => 2 }
@@ -56,6 +64,7 @@ is_deeply(
 
 is_deeply(
   $HL->clone->load(
+  'Album:column_info.blah',
   {
     "*" => {
       "*/column_info" => 1
@@ -81,6 +90,7 @@ is_deeply(
 
 is_deeply(
   $HL->clone->load(
+  { 'Album:*' => { 'column_info.blah' => 1 } },
   {
     "*" => {
       "*/column_info" => 1
