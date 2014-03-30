@@ -21,6 +21,26 @@ ok(
   "Instantiate new Hash::Layout instance"
 );
 
+my $target1 = {
+  "*" => {
+    "*" => {
+      column_info => 1
+    }
+  },
+  Film => {
+    id => {
+      relationship_info => 1
+    },
+    rental_rate => {
+      column_info => {
+        foo => {
+          baz => 2,
+          blah => 1
+        }
+      }
+    }
+  }
+};
 
 is_deeply(
   $HL->clone->load(
@@ -29,29 +49,9 @@ is_deeply(
     'Film:rental_rate/column_info.foo.blah',
     { 'Film:rental_rate/column_info.foo.baz' => 2 }
   )->Data,
-  {
-    "*" => {
-      "*" => {
-        column_info => 1
-      }
-    },
-    Film => {
-      id => {
-        relationship_info => 1
-      },
-      rental_rate => {
-        column_info => {
-          foo => {
-            baz => 2,
-            blah => 1
-          }
-        }
-      }
-    }
-  },
-  "load values (1)"
+  $target1,
+  "load values - target1 (1)"
 );
-
 
 
 is_deeply(
@@ -75,16 +75,20 @@ is_deeply(
     }
   }
   )->Data,
+  $target1,
+  "load values - target1 (2)"
+);
+
+is_deeply(
+  $HL->clone->load(
   {
     "*" => {
-      "*" => {
-        column_info => 1
-      }
+      "*/column_info" => 1
+    },
+    'Film:id' => { #<-- trailing '/' not needed
+      relationship_info => 1
     },
     Film => {
-      id => {
-        relationship_info => 1
-      },
       rental_rate => {
         column_info => {
           foo => {
@@ -94,8 +98,10 @@ is_deeply(
         }
       }
     }
-  },
-  "load values (2)"
+  }
+  )->Data,
+  $target1,
+  "load values - target1 (3)"
 );
 
 

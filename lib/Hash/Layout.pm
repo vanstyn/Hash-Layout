@@ -95,6 +95,7 @@ sub _load {
   
   my $Lvl = $self->levels->[$index] or die "Bad level index '$index'";
   my $last_level = ! $self->levels->[$index+1];
+  my $no_fill = 1;
   
   for my $arg (@args) {
     
@@ -114,7 +115,7 @@ sub _load {
       my $val = $arg->{$key};
       
       if( $force_composit || $self->_is_composit_key($key,$index) ) {
-        my @path = $self->resolve_key_path($key,$index);
+        my @path = $self->resolve_key_path($key,$index,$no_fill);
         my $lkey = pop @path;
         my $hval = {};
         $self->_init_hash_path($hval,@path)->{$lkey} = $val;
@@ -209,8 +210,9 @@ sub _is_composit_key {
 }
 
 sub resolve_key_path {
-  my ($self, $key, $index) = @_;
+  my ($self, $key, $index, $no_fill) = @_;
   $index ||= 0;
+  $no_fill ||= 0;
   
   my $Lvl = $self->levels->[$index];
   my $last_level = ! $self->levels->[$index+1];
@@ -218,18 +220,21 @@ sub resolve_key_path {
   if ($Lvl) {
     my ($peeled,$leftover) = $Lvl->_peel_str_key($key);
     if($peeled) {
+      local $self->{_composit_key_peeled} = 1;
       # If a key was peeled, move on to the next level with leftovers:
-      return ($peeled, $self->resolve_key_path($leftover,$index+1)) if ($leftover); 
+      return ($peeled, $self->resolve_key_path($leftover,$index+1,$no_fill)) if ($leftover); 
       
       # If there were no leftovers, recurse again only for the last level,
       # otherwise, return now (this only makes a difference for deep values)
-      return $last_level ? $self->resolve_key_path($peeled,$index+1) : $peeled;
+      return $last_level ? $self->resolve_key_path($peeled,$index+1,$no_fill) : $peeled;
     }
     else {
       # If a key was not peeled, add the default key at the top of the path
-      # only if we're not already at the last level: 
-      my @path = $self->resolve_key_path($key,$index+1);
-      return $last_level ? @path : ($self->default_key,@path);
+      # only if we're not already at the last level and 'no_fill' is not set
+      # (and we've already peeled at least one key)
+      my @path = $self->resolve_key_path($key,$index+1,$no_fill);
+      my $as_is = $last_level || ($no_fill && $self->{_composit_key_peeled});
+      return $as_is ? @path : ($self->default_key,@path);
     }
   }
   else {
