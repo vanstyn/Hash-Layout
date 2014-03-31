@@ -13,15 +13,24 @@ has 'name',      is => 'ro', isa => Str, lazy => 1, default => sub {
   return 'level-' . $self->index;
 };
 
-has 'edge_keys', is => 'ro', isa => Maybe[
+# Key names which we specifically expect to be at this level. This
+# is a mechanism to resolve default/pad ambiguity when resolving
+# composit key strings
+has 'registered_keys', is => 'ro', isa => Maybe[
   Map[Str,Bool]
 ], coerce => \&_coerce_list_hash, default => sub {undef};
 
-has 'deep_keys', is => 'ro', isa => Maybe[
-  Map[Str,Bool]
-], coerce => \&_coerce_list_hash, default => sub {undef};
 
-has 'limit_keys', is => 'ro', isa => Bool, default => sub { 0 };
+## TDB:
+#has 'edge_keys', is => 'ro', isa => Maybe[
+#  Map[Str,Bool]
+#], coerce => \&_coerce_list_hash, default => sub {undef};
+#
+#has 'deep_keys', is => 'ro', isa => Maybe[
+#  Map[Str,Bool]
+#], coerce => \&_coerce_list_hash, default => sub {undef};
+#
+#has 'limit_keys', is => 'ro', isa => Bool, default => sub { 0 };
 
 
 
@@ -29,6 +38,12 @@ has 'limit_keys', is => 'ro', isa => Bool, default => sub { 0 };
 # to this Level's delimiter:
 sub _peel_str_key {
   my ($self,$key) = @_;
+  
+  return $key if (
+    $self->registered_keys &&
+    $self->registered_keys->{$key}
+  );
+  
   my $del = $self->delimiter or return undef;
   return undef unless ($key =~ /\Q${del}\E/);
   my ($peeled,$leftover) = split(/\Q${del}\E/,$key,2);

@@ -218,6 +218,7 @@ sub _is_composit_key {
   my $Lvl = $self->levels->[$index];
 
   if ($Lvl) {
+    return 0 if ($Lvl->registered_keys && $Lvl->registered_keys->{$key});
     return $Lvl->_peel_str_key($key) || $self->_is_composit_key($key,$index+1);
   }
   else {
