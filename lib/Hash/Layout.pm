@@ -99,11 +99,7 @@ sub coercer {
   return sub { $self->coerce(@_) };
 }
 
-sub coerce {
-  my $self = shift;
-
-}
-
+sub coerce { (shift)->clone->reset->load(@_) }
 
 sub load {
   my $self = shift;
