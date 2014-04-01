@@ -20,10 +20,11 @@ has 'levels', is => 'ro', isa => ArrayRef[
 
 sub num_levels { scalar(@{(shift)->levels}) }
 
-has 'default_key',       is => 'ro', isa => Str, default => sub { '*' };
-has 'default_value',     is => 'ro', default => sub { 1 };
+has 'default_value',     is => 'ro',              default => sub { 1 };
+has 'default_key',       is => 'ro', isa => Str,  default => sub { '*' };
+has 'merge_defaults',    is => 'ro', isa => Bool, default => sub { 1 };
 has 'allow_deep_values', is => 'ro', isa => Bool, default => sub { 1 };
-has 'deep_delimiter',    is => 'ro', isa => Str, default => sub { '.' };
+has 'deep_delimiter',    is => 'ro', isa => Str,  default => sub { '.' };
 has 'no_fill',           is => 'ro', isa => Bool, default => sub { 0 };
 has 'no_pad',            is => 'ro', isa => Bool, default => sub { 0 };
 
@@ -91,15 +92,118 @@ sub _post_validate {
 
 }
 
-
-
-
 sub coercer {
   my $self = shift;
   return sub { $self->coerce(@_) };
 }
 
-sub coerce { (shift)->clone->reset->load(@_) }
+sub coerce { 
+  my ($self, @args) = @_;
+  die 'coerce() is not a class method' unless (blessed $self);
+  if(scalar(@args) == 1 && ref($args[0])) {
+    return $args[0] if (blessed($args[0]) eq __PACKAGE__);
+    @args = @{$args[0]} if (ref($args[0]) eq 'ARRAY');
+  }
+  return $self->clone->reset->load(@args);
+}
+
+sub lookup {
+  my ($self, @path) = @_;
+   # lookup() is the same as get() when 'merge_defaults' is turned off:
+  return $self->get(@path) unless ($self->merge_defaults);
+  
+  return undef unless (defined $path[0]);
+  @path = scalar(@path) > 1 ? @path : $self->resolve_key_path($path[0]);
+  
+  # If the exact path is set and is NOT a hash (that may need merging),
+  # return it outright:
+  if($self->exists_abs(@path)) {
+    my $val = $self->get(@path);
+    return $val unless (ref $val && ref($val) eq 'HASH');
+  }
+  
+  my @set = $self->_enumerate_default_paths(@path);
+  
+  my $hash_val;
+  my @values = ();
+  for my $dpath (@set) {
+    $self->exists_abs(@$dpath) or next;
+    my $val = $self->get(@$dpath);
+    if (ref $val && ref($val) eq 'HASH') {
+      # Set/merge hashes:
+      $hash_val = $hash_val ? merge($val,$hash_val) : $val;
+    }
+    else {
+      # Return the first non-hash value unless a hash has already been
+      # encountered, and if that is the case, we can't merge a non-hash,
+      # return the hash we already had now
+      return $hash_val ? $hash_val : $val;
+    }
+  }
+  
+  # If nothing was found, $hash_val will still be undef:
+  return $hash_val;
+}
+
+sub get {
+  my ($self, @path) = @_;
+  return undef unless (defined $path[0]);
+  @path = scalar(@path) > 1 ? @path : $self->resolve_key_path($path[0]);
+  
+  my $value;
+  my $ev_path = $self->_as_eval_path(@path);
+  eval join('','$value = $self->Data->',$ev_path);
+  
+  return $value;
+}
+
+sub exists_abs {
+  my ($self, @path) = @_;
+  return 0 unless (defined $path[0]);
+  @path = scalar(@path) > 1 ? @path : $self->resolve_key_path($path[0]);
+  
+  my $ev_path = $self->_as_eval_path(@path);
+  return eval join('','exists $self->Data->',$ev_path);
+}
+
+# Use bitwise math to enumerate all possible prefix, default key paths:
+sub _enumerate_default_paths {
+  my ($self, @path) = @_;
+
+  my $def_val = $self->default_key;
+  my $depth = scalar @path;
+
+  my @set = ();
+  my %seen_combo = ();
+
+  # bits needed for @path depth:
+  my $bits = 2**$depth;
+  my @mask_sets = ();
+  push @mask_sets, $bits while(--$bits >= 0);
+
+  # Re-sort the mask sets as reversed *strings*, because we want
+  # '011' to come before '110'
+  @mask_sets = sort { 
+    reverse(sprintf('%0'.$depth.'b',$b)) cmp 
+    reverse(sprintf('%0'.$depth.'b',$a)) 
+  } @mask_sets;
+
+  for my $mask (@mask_sets) {
+    my @combo = ();
+    my $check_mask =  2**$depth >> 1;
+    for my $k (@path) {
+      # Use bitwise AND to decide whether or not to swap the
+      # default value for the actual key:
+      push @combo, $check_mask & $mask ? $k : $def_val;
+      
+      # Shift the check bit position by one for the next key:
+      $check_mask = $check_mask >> 1;
+    }
+    push @set, \@combo unless ($seen_combo{join('/',@combo)}++);
+  }
+
+  return @set;
+}
 
 sub load {
   my $self = shift;
