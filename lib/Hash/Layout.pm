@@ -95,7 +95,7 @@ sub _post_validate {
 }
 
 sub coercer {
-  my $self = shift;
+  my $self = (shift)->clone;
   return sub { $self->coerce(@_) };
 }
 

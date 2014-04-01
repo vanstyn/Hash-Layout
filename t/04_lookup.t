@@ -22,6 +22,7 @@ ok(
 );
 
 
+
 sub lookups1 {
   my $HL1 = shift;
 
@@ -70,6 +71,8 @@ ok(
 # 'fallback' is the same as 'merge' for scalar values:
 &lookups1($HL1);
 
+# will be used further down...
+my $coercer = $HL1->coercer;
 
 ok(
   $HL1->lookup_mode('get'),
@@ -102,6 +105,18 @@ ok(
 );
 
 &lookups1($HL2);
+
+ok(
+  my $HL3 = $coercer->(
+    { '*/foobar'                => 'default foobar' },
+    { 'rental_rate/foobar'      => 'rental_rate foobar' },
+    { 'Film:foobar'             => 'Film foobar' },
+    { 'Film:rental_rate/foobar' => 'Film rental_rate foobar' },
+  ),
+  "New via saved coercer ref"
+);
+
+&lookups1($HL3);
 
 done_testing;
 
