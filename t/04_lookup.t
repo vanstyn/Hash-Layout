@@ -88,5 +88,20 @@ is(
   "lookup (6)"
 );
 
+
+
+ok(
+  my $HL2 = $HL1->coercer->($HL)->clone->reset->clone->coerce(
+    { '*/foobar'                => 'default foobar' },
+    { 'rental_rate/foobar'      => 'rental_rate foobar' },
+  )->clone->load(
+    { 'Film:foobar'             => 'Film foobar' },
+    { 'Film:rental_rate/foobar' => 'Film rental_rate foobar' },
+  )->clone->load(),
+  "New via complex chaining clone/reset/coerce/coercer/load"
+);
+
+&lookups1($HL2);
+
 done_testing;
 
