@@ -22,11 +22,13 @@ sub num_levels { scalar(@{(shift)->levels}) }
 
 has 'default_value',     is => 'ro',              default => sub { 1 };
 has 'default_key',       is => 'ro', isa => Str,  default => sub { '*' };
-has 'merge_defaults',    is => 'ro', isa => Bool, default => sub { 1 };
 has 'allow_deep_values', is => 'ro', isa => Bool, default => sub { 1 };
 has 'deep_delimiter',    is => 'ro', isa => Str,  default => sub { '.' };
 has 'no_fill',           is => 'ro', isa => Bool, default => sub { 0 };
 has 'no_pad',            is => 'ro', isa => Bool, default => sub { 0 };
+
+has 'lookup_mode', is => 'rw', isa => Enum[qw(get fallback merge)], 
+  default => sub { 'merge' };
 
 has '_Hash', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
 has '_all_level_keys', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
@@ -110,7 +112,7 @@ sub coerce {
 sub lookup {
   my ($self, @path) = @_;
    # lookup() is the same as get() when 'merge_defaults' is turned off:
-  return $self->get(@path) unless ($self->merge_defaults);
+  return $self->get(@path) if ($self->lookup_mode eq 'get');
   
   return undef unless (defined $path[0]);
   @path = scalar(@path) > 1 ? @path : $self->resolve_key_path($path[0]);
@@ -119,7 +121,10 @@ sub lookup {
   # return it outright:
   if($self->exists_abs(@path)) {
     my $val = $self->get(@path);
-    return $val unless (ref $val && ref($val) eq 'HASH');
+    return $val unless (
+      ref $val && ref($val) eq 'HASH'
+      && $self->lookup_mode eq 'merge'
+    );
   }
   
   my @set = $self->_enumerate_default_paths(@path);
@@ -129,6 +134,7 @@ sub lookup {
   for my $dpath (@set) {
     $self->exists_abs(@$dpath) or next;
     my $val = $self->get(@$dpath);
+    return $val unless ($self->lookup_mode eq 'merge');
     if (ref $val && ref($val) eq 'HASH') {
       # Set/merge hashes:
       $hash_val = $hash_val ? merge($val,$hash_val) : $val;

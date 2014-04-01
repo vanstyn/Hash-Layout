@@ -57,5 +57,17 @@ is(
   "lookup (4)"
 );
 
+
+ok(
+  $HL1->lookup_mode('get'),
+  "Change lookup_mode from default 'merge' to 'get'"
+);
+
+is(
+  $HL1->lookup('Album:rental_rate/foobar'),
+  undef,
+  "lookup (5)"
+);
+
 done_testing;
 
