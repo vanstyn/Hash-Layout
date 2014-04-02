@@ -33,6 +33,11 @@ has 'lookup_mode', is => 'rw', isa => Enum[qw(get fallback merge)],
 has '_Hash', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
 has '_all_level_keys', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
 
+# List of bitmasks representing every key path which includes
+# a default_key, with each bit representing the level and '1' toggled on
+# where the key is the default
+has '_def_key_bitmasks', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
+
 sub Data { (shift)->_Hash }
 
 sub level_keys {
@@ -49,8 +54,9 @@ sub level_keys {
 # Clears the Hash of any existing data
 sub reset {
   my $self = shift;
-  %{$self->_Hash}       = ();
-  %{$self->_all_level_keys} = ();
+  %{$self->_Hash}             = ();
+  %{$self->_all_level_keys}   = ();
+  %{$self->_def_key_bitmasks} = ();
   return $self;
 }
 
@@ -182,25 +188,28 @@ sub _enumerate_default_paths {
   my @set = ();
   my %seen_combo = ();
 
-  # bits needed for @path depth:
-  my $bits = 2**$depth;
-  my @mask_sets = ();
-  push @mask_sets, $bits while(--$bits >= 0);
-
+  ## enumerate every possible default path bitmask (slow with many levels):
+  #my $bits = 2**$depth;
+  #my @mask_sets = ();
+  #push @mask_sets, $bits while(--$bits >= 0);
+  
+  # default path bitmasks only for paths we know are set (much faster):
+  my @mask_sets = keys %{$self->_def_key_bitmasks};
+  
   # Re-sort the mask sets as reversed *strings*, because we want
   # '011' to come before '110'
   @mask_sets = sort { 
-    reverse(sprintf('%0'.$depth.'b',$b)) cmp 
-    reverse(sprintf('%0'.$depth.'b',$a)) 
+    reverse(sprintf('%0'.$depth.'b',$a)) cmp 
+    reverse(sprintf('%0'.$depth.'b',$b)) 
   } @mask_sets;
-
+  
   for my $mask (@mask_sets) {
     my @combo = ();
     my $check_mask =  2**$depth >> 1;
     for my $k (@path) {
       # Use bitwise AND to decide whether or not to swap the
       # default value for the actual key:
-      push @combo, $check_mask & $mask ? $k : $def_val;
+      push @combo, $check_mask & $mask ? $def_val : $k;
       
       # Shift the check bit position by one for the next key:
       $check_mask = $check_mask >> 1;
@@ -236,7 +245,7 @@ sub _load {
     for my $key (keys %$arg) {
       die "Only scalar/string keys are allowed" 
         unless (defined $key && ! ref($key));
-      
+        
       my $val = $arg->{$key};
       my $is_hashval = ref $val && ref($val) eq 'HASH';
       
@@ -249,6 +258,15 @@ sub _load {
         $self->_load($index,$noderef,$hval);
       }
       else {
+      
+        local $self->{_path_bitmask} = $self->{_path_bitmask};
+        my $bm = 0; $self->{_path_bitmask} //= \$bm;
+        my $bmref = $self->{_path_bitmask};
+        if($key eq $self->default_key) {
+          my $depth = 2**($self->num_levels);
+          $$bmref = $$bmref | ($depth >> $index+1);
+        }
+      
         $self->_all_level_keys->{$index}{$key} = 1;
         if($is_hashval) {
           $self->_init_hash_path($noderef,$key);
@@ -262,6 +280,10 @@ sub _load {
         }
         else {
           $noderef->{$key} = $val;
+        }
+        
+        if($index == 0 && $$bmref) {
+          $self->_def_key_bitmasks->{$$bmref} = 1;
         }
       }
     }
