@@ -108,11 +108,17 @@ sub coercer {
 sub coerce { 
   my ($self, @args) = @_;
   die 'coerce() is not a class method' unless (blessed $self);
-  if(scalar(@args) == 1 && ref($args[0])) {
-    return $args[0] if (blessed($args[0]) eq __PACKAGE__);
-    @args = @{$args[0]} if (ref($args[0]) eq 'ARRAY');
+  if(scalar(@args) == 1){
+    if(ref($args[0])) {
+      return $args[0] if (blessed($args[0]) && blessed($args[0]) eq __PACKAGE__);
+      @args = @{$args[0]} if (ref($args[0]) eq 'ARRAY');
+    }
+    elsif(! defined $args[0]) {
+      return $self->clone->reset;
+    }
   }
-  return $self->clone->reset->load(@args);
+  my $new = $self->clone->reset;
+  return scalar(@args) > 0 ? $new->load(@args) : $new;
 }
 
 
@@ -256,6 +262,7 @@ sub _load {
   my $last_level = ! $self->levels->[$index+1];
   
   for my $arg (@args) {
+    die "Undef keys are not allowed" unless (defined $arg);
     
     my $force_composit = 0;
     unless (ref $arg) {
@@ -278,7 +285,12 @@ sub _load {
         my @path = $self->resolve_key_path($key,$index,$no_fill);
         my $lkey = pop @path;
         my $hval = {};
-        $self->_init_hash_path($hval,@path)->{$lkey} = $val;
+        if(scalar(@path) > 0) {
+          $self->_init_hash_path($hval,@path)->{$lkey} = $val;
+        }
+        else {
+          $hval->{$lkey} = $val;
+        }
         $self->_load($index,$noderef,$hval);
       }
       else {
