@@ -177,6 +177,13 @@ sub lookup_path {
   return $hash_val;
 }
 
+# Only returns the lookup_path value if it is a "leaf" - 
+#  any value that is NOT a populated HashRef
+sub lookup_leaf_path {
+  my ($self, @path) = @_;
+  my $v = $self->lookup_path(@path);
+  return (ref $v && ref($v) eq 'HASH' && scalar(keys %$v) > 0) ? undef : $v; 
+}
 
 sub get {
   my ($self, @path) = @_;
