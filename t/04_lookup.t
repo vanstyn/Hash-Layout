@@ -118,5 +118,146 @@ ok(
 
 &lookups1($HL3);
 
+
+sub lookups4 {
+  my $HL = shift;
+  is(
+    $HL->lookup('*/*/Kingdom/*/*/Phylum/Class'),
+    'Mammalia',
+    "lookup (7)"
+  );
+
+  is(
+    $HL->lookup('*/*/Kingdom/*/Blah/Phylum/Class'),
+    'Mammalia',
+    "lookup (8)"
+  );
+
+  is(
+    $HL->lookup('*/*/Apple/*/Blah/Phylum/Class'),
+    "default, default value",
+    "lookup (9)"
+  );
+
+  is(
+    $HL->lookup('fish'),
+    "default, default value",
+    "lookup (10)"
+  );
+}
+
+ok(
+  my $HL4 = Hash::Layout->new({
+    levels => 15
+  }),
+  "Instantiate new Hash::Layout instance with 15 default levels"
+);
+
+ok(
+  $HL4->load({
+    '*/*'                           => 'default, default value',
+    '*/*/Kingdom/*/*/Phylum/Class'  => 'Mammalia' 
+  }),
+  "Load values in 15-level layout"
+);
+
+is_deeply(
+  $HL4->Data,
+  {
+    "*" => {
+      "*" => {
+        "*" => {
+          "*" => {
+            "*" => {
+              "*" => {
+                "*" => {
+                  "*" => {
+                    "*" => {
+                      "*" => {
+                        "*" => {
+                          "*" => {
+                            "*" => {
+                              "*" => {
+                                "*" => "default, default value"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        Kingdom => {
+          "*" => {
+            "*" => {
+              Phylum => {
+                "*" => {
+                  "*" => {
+                    "*" => {
+                      "*" => {
+                        "*" => {
+                          "*" => {
+                            "*" => {
+                              "*" => {
+                                Class => "Mammalia"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "Expected 15-level data"
+);
+
+is_deeply(
+  $HL4->_def_key_bitmasks,
+  {
+    28158 => 1,
+    32767 => 1
+  },
+  'Expected _def_key_bitmasks for 15-level data'
+);
+
+&lookups4($HL4);
+
+ok(
+  my $HL5 = Hash::Layout->new({
+    levels => 30
+  }),
+  "Instantiate new Hash::Layout instance with 30 default levels"
+);
+
+ok(
+  $HL5->load({
+    '*/*'                           => 'default, default value',
+    '*/*/Kingdom/*/*/Phylum/Class'  => 'Mammalia' 
+  }),
+  "Load values in 30-level layout"
+);
+
+is_deeply(
+  $HL5->_def_key_bitmasks,
+  {
+    1073741823 => 1,
+    922746878  => 1
+  },
+  'Expected _def_key_bitmasks for 30-level data'
+);
+
+&lookups4($HL5);
+
 done_testing;
 
