@@ -343,5 +343,11 @@ is(
   'chained set/get in one call'
 );
 
+is(
+  $HL5->set( 'fruit/apple' => 'grape' )->get('fruit/apple'),
+  'grape',
+  'chained set/get in one call (composit key)'
+);
+
 done_testing;
 
