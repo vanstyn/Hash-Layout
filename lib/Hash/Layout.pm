@@ -213,7 +213,7 @@ sub _enumerate_default_paths {
   my ($self, @path) = @_;
 
   my $def_val = $self->default_key;
-  my $depth = scalar @path;
+  my $depth = $self->num_levels;
 
   my @set = ();
   my %seen_combo = ();
@@ -464,6 +464,15 @@ sub _coerce_levels_param {
   die "no levels specified" unless (scalar(@new) > 0);
   
   return \@new;
+}
+
+
+# debug method:
+sub def_key_bitmask_strings {
+  my $self = shift;
+  my $depth = $self->num_levels;
+  my @masks = keys %{$self->_def_key_bitmasks};
+  map { sprintf('%0'.$depth.'b',$_) } @masks;
 }
 
 1;

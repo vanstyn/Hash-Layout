@@ -349,5 +349,24 @@ is(
   'chained set/get in one call (composit key)'
 );
 
-done_testing;
 
+is_deeply(
+  $HL->coerce('*:lvl2_item/')->lookup_path('SomeLevelOneItem'),
+  { lvl2_item => 1 },
+  'Lookup non-existant key with default (1)'
+);
+
+is_deeply(
+  $HL->coerce('lvl3_item')->lookup_path('SomeLevelOneItem'),
+  { '*' => { lvl3_item => 1 }},
+  'Lookup non-existant key with default (2)'
+);
+
+is_deeply(
+  $HL->coerce('lvl3_item')->lookup_path('SomeLevelOneItem','SomeLevelTwoItem'),
+  { lvl3_item => 1 },
+  'Lookup non-existant key with default (3)'
+);
+
+
+done_testing;
