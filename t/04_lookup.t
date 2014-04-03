@@ -67,6 +67,55 @@ sub lookups1 {
     { foobar => "Film rental_rate foobar" },
     "lookup (7)"
   );
+  
+  is(
+    $HL1->lookup('Film'),
+    undef,
+    "lookup (8)"
+  );
+  
+  is_deeply(
+    $HL1->get_path('Film'),
+    {
+      "*" => {
+        foobar => "Film foobar"
+      },
+      id => {},
+      rental_rate => {
+        foobar => "Film rental_rate foobar"
+      }
+    },
+    "get_path (9)"
+  );
+  
+  is_deeply(
+    $HL1->lookup_path('Film'),
+    {
+      "*" => {
+        foobar => "Film foobar"
+      },
+      id => {},
+      rental_rate => {
+        foobar => "Film rental_rate foobar"
+      }
+    },
+    "lookup_path (10)"
+  );
+  
+  is_deeply(
+    $HL1->lookup('Film:'),
+    {
+      "*" => {
+        foobar => "Film foobar"
+      },
+      id => {},
+      rental_rate => {
+        foobar => "Film rental_rate foobar"
+      }
+    },
+    "lookup (11)"
+  );
+   
 }
 
 ok(

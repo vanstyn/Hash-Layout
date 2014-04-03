@@ -115,30 +115,44 @@ sub coerce {
   return $self->clone->reset->load(@args);
 }
 
+
 sub lookup {
   my ($self, @path) = @_;
-   # lookup() is the same as get() when 'merge_defaults' is turned off:
+   # lookup() is the same as get() when lookup_mode is 'get':
   return $self->get(@path) if ($self->lookup_mode eq 'get');
   
   return undef unless (defined $path[0]);
   @path = scalar(@path) > 1 ? @path : $self->resolve_key_path($path[0]);
+
+  return $self->lookup_path(@path);
+}
+
+sub lookup_path {
+  my ($self, @path) = @_;
+   # lookup_path() is the same as get_path() when lookup_mode is 'get':
+  return $self->get_path(@path) if ($self->lookup_mode eq 'get');
   
+  return undef unless (defined $path[0]);
+  
+  my $hash_val;
+
   # If the exact path is set and is NOT a hash (that may need merging),
   # return it outright:
-  if($self->exists_abs(@path)) {
-    my $val = $self->get(@path);
+  if($self->exists_abs_path(@path)) {
+    my $val = $self->get_path(@path);
     return $val unless (
       ref $val && ref($val) eq 'HASH'
       && $self->lookup_mode eq 'merge'
     );
+    # Set the first hash_val:
+    $hash_val = $val if(ref $val && ref($val) eq 'HASH');
   }
   
   my @set = $self->_enumerate_default_paths(@path);
   
-  my $hash_val;
   my @values = ();
   for my $dpath (@set) {
-    $self->exists_abs(@$dpath) or next;
+    $self->exists_abs_path(@$dpath) or next;
     my $val = $self->get(@$dpath);
     return $val unless ($self->lookup_mode eq 'merge');
     if (ref $val && ref($val) eq 'HASH') {
@@ -157,11 +171,18 @@ sub lookup {
   return $hash_val;
 }
 
+
 sub get {
   my ($self, @path) = @_;
   return undef unless (defined $path[0]);
   @path = scalar(@path) > 1 ? @path : $self->resolve_key_path($path[0]);
-  
+  return $self->get_path(@path);
+}
+
+sub get_path {
+  my ($self, @path) = @_;
+  return undef unless (defined $path[0]);
+
   my $value;
   my $ev_path = $self->_as_eval_path(@path);
   eval join('','$value = $self->Data->',$ev_path);
@@ -169,11 +190,10 @@ sub get {
   return $value;
 }
 
-sub exists_abs {
+sub exists_abs_path {
   my ($self, @path) = @_;
   return 0 unless (defined $path[0]);
-  @path = scalar(@path) > 1 ? @path : $self->resolve_key_path($path[0]);
-  
+
   my $ev_path = $self->_as_eval_path(@path);
   return eval join('','exists $self->Data->',$ev_path);
 }
