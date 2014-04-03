@@ -336,6 +336,31 @@ sub _load {
 }
 
 
+sub path_to_composit_key {
+  my ($self, @path) = @_;
+  return $self->_path_to_composit_key(0,@path);
+}
+
+sub _path_to_composit_key {
+  my ($self, $index, @path) = @_;
+
+  my $Lvl = $self->levels->[$index] or die "Bad level index '$index'";
+  my $last_level = ! $self->levels->[$index+1];
+  
+  if($last_level) {
+    my $del = $self->deep_delimiter || '.';
+    return join($del,@path);
+  }
+  else {
+    my $key = shift @path;
+    return scalar(@path) > 0 ? join(
+      $Lvl->delimiter,$key,
+      $self->_path_to_composit_key($index+1,@path)
+    ) : join('',$key,$Lvl->delimiter);
+  }
+}
+
+
 sub _init_hash_path {
   my ($self,$hash,@path) = @_;
   die "Not a hash" unless (ref $hash && ref($hash) eq 'HASH');

@@ -57,6 +57,25 @@ is_deeply(
   'resolve_key_path (6)'
 );
 
+
+is(
+  $HL->path_to_composit_key(qw(Film * column_info foo bar blah)),
+  "Film:*/column_info.foo.bar.blah",
+  'path_to_composit_key (1)'
+);
+
+is(
+  $HL->path_to_composit_key(qw(One Two Three)),
+  "One:Two/Three",
+  'path_to_composit_key (2)'
+);
+
+is(
+  $HL->path_to_composit_key(qw(One Two Three Four Five Six)),
+  "One:Two/Three.Four.Five.Six",
+  'path_to_composit_key (3)'
+);
+
 ok(
   my $HL2 = Hash::Layout->new({
     allow_deep_values => 0,
