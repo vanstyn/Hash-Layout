@@ -175,7 +175,11 @@ sub lookup_path {
 sub get {
   my ($self, @path) = @_;
   return undef unless (defined $path[0]);
-  @path = scalar(@path) > 1 ? @path : $self->resolve_key_path($path[0]);
+  
+  @path = scalar(@path) > 1 
+    ? @path : $self->_is_composit_key($path[0])
+    ? $self->resolve_key_path($path[0]) : @path;
+
   return $self->get_path(@path);
 }
 
@@ -335,11 +339,7 @@ sub set {
   my ($self,$key,$value) = @_;
   die "bad number of arguments passed to set" unless (scalar(@_) == 3);
   die '$key value is required' unless ($key && $key ne '');
-  
-  my $eval_path = $self->_eval_key_path($key) 
-    or die "Error resolving key string '$key'";
-  
-  eval join('','$self->_Hash->',$eval_path,' = $value');
+  $self->load({ $key => $value });
 }
 
 

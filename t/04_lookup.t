@@ -326,5 +326,22 @@ is_deeply(
 
 &lookups4($HL5);
 
+ok(
+  $HL5->set( foo => 'blah' ),
+  "set()"
+);
+
+is(
+  $HL5->get('foo'),
+  'blah',
+  'get value which was just set'
+);
+
+is(
+  $HL5->set( apple => 'banana' )->get('apple'),
+  'banana',
+  'chained set/get in one call'
+);
+
 done_testing;
 
