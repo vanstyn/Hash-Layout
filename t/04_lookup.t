@@ -49,6 +49,24 @@ sub lookups1 {
     'rental_rate foobar',
     "lookup (4)"
   );
+  
+ is(
+    $HL1->lookup('Film:rental_rate'),
+    undef,
+    "lookup (5)"
+  );
+  
+  is_deeply(
+    $HL1->lookup('Film','rental_rate'),
+    { foobar => "Film rental_rate foobar" },
+    "lookup (6)"
+  );
+  
+  is_deeply(
+    $HL1->lookup('Film:rental_rate/'),
+    { foobar => "Film rental_rate foobar" },
+    "lookup (7)"
+  );
 }
 
 ok(
@@ -82,13 +100,13 @@ ok(
 is(
   $HL1->lookup('Album:rental_rate/foobar'),
   undef,
-  "lookup (5)"
+  "lookup (a1)"
 );
 
 is(
   $HL1->lookup('rental_rate/foobar'),
   'rental_rate foobar',
-  "lookup (6)"
+  "lookup (a2)"
 );
 
 
@@ -124,25 +142,25 @@ sub lookups4 {
   is(
     $HL->lookup('*/*/Kingdom/*/*/Phylum/Class'),
     'Mammalia',
-    "lookup (7)"
+    "lookup (b1)"
   );
 
   is(
     $HL->lookup('*/*/Kingdom/*/Blah/Phylum/Class'),
     'Mammalia',
-    "lookup (8)"
+    "lookup (b2)"
   );
 
   is(
     $HL->lookup('*/*/Apple/*/Blah/Phylum/Class'),
     "default, default value",
-    "lookup (9)"
+    "lookup (b3)"
   );
 
   is(
     $HL->lookup('fish'),
     "default, default value",
-    "lookup (10)"
+    "lookup (b4)"
   );
 }
 
