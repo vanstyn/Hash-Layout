@@ -38,13 +38,18 @@ $HL->load({
   'Store:London/blah'       => 'purple'
 });
 
+# load composite keys w/o values (uses default_value):
+$HL->load(qw/baz:bool_key flag01/);
+
 # lookup values
+is($HL->lookup('*:*/foo_rule')              => 'always deny'         );
 is($HL->lookup('foo_rule')                  => 'always deny'         );
 is($HL->lookup('ABC:XYZ/foo_rule')          => 'always deny'         );
 is($HL->lookup('Lima/foo_rule')             => 'always deny'         );
 is($HL->lookup('NewYork/foo_rule')          => 'prompt'              );
 is($HL->lookup('Office:NewYork/foo_rule')   => 'allow'               );
-is($HL->lookup('Store:foo_rule')            => 'other'      );
+is($HL->lookup('Store:foo_rule')            => 'other'               );
+is($HL->lookup('baz:Anything/bool_key')     => 1                     );
 
 
 my $hash = $HL->Data;
@@ -55,6 +60,7 @@ is_deeply(
     "*" => {
       "*" => {
         blah => "thing",
+        flag01 => 1,
         foo_rule => "always deny"
       },
       NewYork => {
@@ -73,6 +79,11 @@ is_deeply(
       London => {
         blah => "purple"
       }
+    },
+    baz => {
+      "*" => {
+        bool_key => 1
+      }
     }
   },
   "Data"
@@ -80,6 +91,3 @@ is_deeply(
 
 
 done_testing;
-
-
-

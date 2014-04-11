@@ -549,18 +549,21 @@ Hash::Layout - hashes with predefined layouts, composite keys and default values
    'Store:London/blah'       => 'purple'
  });
  
+ # load composite keys w/o values (uses default_value):
+ $HL->load(qw/baz:bool_key flag01/);
+ 
  
  my $hash = $HL->Data;
  
- ## $hash now contains:
+ #  $hash now contains:
  #
  #    {
  #      "*" => {
  #        "*" => {
  #          blah => "thing",
+ #          flag01 => 1,
  #          foo_rule => "always deny"
  #        },
- #        Lima => {},
  #        NewYork => {
  #          foo_rule => "prompt"
  #        }
@@ -577,24 +580,32 @@ Hash::Layout - hashes with predefined layouts, composite keys and default values
  #        London => {
  #          blah => "purple"
  #        }
+ #      },
+ #      baz => {
+ #        "*" => {
+ #          bool_key => 1
+ #        }
  #      }
  #    }
- ##
+ #
  
  
  # lookup values by composite key:
- $HL->lookup('foo_rule')                  # 'always deny'
- $HL->lookup('ABC:XYZ/foo_rule')          # 'always deny'  # (virtual/fallback)
- $HL->lookup('Lima/foo_rule')             # 'always deny'  # (virtual/fallback)
- $HL->lookup('NewYork/foo_rule')          # 'prompt'
- $HL->lookup('Office:NewYork/foo_rule')   # 'allow'
- $HL->lookup('Store:foo_rule')            # 'other'
+ $HL->lookup('*:*/foo_rule')             # 'always deny'
+ $HL->lookup('foo_rule')                 # 'always deny'
+ $HL->lookup('ABC:XYZ/foo_rule')         # 'always deny'  # (virtual/fallback)
+ $HL->lookup('Lima/foo_rule')            # 'always deny'  # (virtual/fallback)
+ $HL->lookup('NewYork/foo_rule')         # 'prompt'
+ $HL->lookup('Office:NewYork/foo_rule')  # 'allow'
+ $HL->lookup('Store:foo_rule')           # 'other'
+ $HL->lookup('baz:Anything/bool_key')    # 1              # (virtual/fallback)
+ 
  
 
 =head1 DESCRIPTION
 
 C<Hash::Layout> provides deep hashes with a predefined number of levels which you can access using
-"composite keys". These are essentially string paths that inflate into actual hash keys according
+special "composite keys". These are essentially string paths that inflate into actual hash keys according
 to the defined levels and delimiter mappings, which can be the same or different for each level. 
 This is useful both for shorter keys as well as merge/fallback to default values, such as when 
 defining overlapping configs ranging from broad to narrowing scope (see example in SYNOPIS above).
@@ -614,16 +625,43 @@ Create a new Hash::Layout instance. The following build options are supported:
 =item levels
 
 Required. ArrayRef of level config definitions, or a numeric number of levels for default level
-configs. Each level can define its own C<delimiter> and list of C<registered_keys>, both of which 
-are optional and are used to resolve composite key strings.
+configs. Each level can define its own C<delimiter> (except the last level) and list of 
+C<registered_keys>, both of which are optional and determine how ambiguous composite keys are resolved.
+
+Level-specific delimiters provide a mechanism to supply partial paths in composite keys but resolve
+to a specific level. The word/string to the left of a delimiter character that is specifc to a given level
+is resolved as the key of that level, however, the correct path order is required (keys are only tokenized
+in order from left to right).
+
+Specific strings can also be declared to belong to a particular level with C<registered_keys>. This
+also only effects how ambiguity is resolved with partial composite keys. See also the C<no_fill> and 
+C<no_pad> options.
+
+See the unit tests for examples of exactly how this works.
+
+C<levels> is the only required parameter.
 
 =item default_value
 
-Value to assign keys when specified to C<load> as simple strings. Defaults to standard Boolean 1 for true.
+Value to assign keys when supplied to C<load> as simple strings instead of key/value pairs. 
+Defaults to standard bool value C<1> for true.
 
 =item default_key
 
-Value to use for the key for levels which are not specified. Defaults to a single asterisk C<(*)>.
+Value to use for the key for levels which are not specified, as well as the key to use for fallback 
+when looking up non-existant keys (see also C<lookup_mode>). Defaults to a single asterisk C<(*)>.
+
+=item no_fill
+
+If true, partial composite keys are not expanded with the default_key (in the middle) to fill to 
+the last level.
+Defaults to 0.
+
+=item no_pad
+
+If true, partial composite keys are not expanded with the default_key (at the front or middle) to 
+fill to the last level. C<no_pad> implies C<no_fill>. Again, see the tests for a more complete 
+explanation. Defaults to 0.
 
 =item allow_deep_values
 
@@ -631,13 +669,60 @@ If true, values at the bottom level are allowed to be hashes, too. Defaults to 1
 
 =item deep_delimiter
 
-When C<allow_deep_values> is enabled, the deep_delimiter character is used to resolve composite keys
+When C<allow_deep_values> is enabled, the deep_delimiter character is used to resolve composite key
 mapping into the deep hash values (i.e. beyond the predefined levels). Must be different from the 
 delimiter used by any of the levels. Defaults to a single dot C<(.)>.
 
+=item lookup_mode
+
+One of either C<get>, C<fallback> or C<merge>. In C<fallback> mode, when a non-existant composite 
+key is looked up, the value of the first closest found key path using default keys is returned 
+instead of C<undef> as is the case with C<get> mode. C<merge> mode is like C<fallback> mode, except 
+hashref values are merged with matching default key paths which are also hashrefs. Defaults to C<merge>.
+
 =back
 
+=head2 clone
+
+Returns a new/cloned C<Hash::Layout> instance
+
+=head2 coerce
+
+Dynamic method coerces supplied value into a new C<Hash::Layout> instance with a new set of loaded data. 
+See unit tests for more info.
+
+=head2 coercer
+
+CodeRef wrapper around C<coerce()>, suitable for use in a L<Moo|Moo#has>-compatable attribute declaration
+
 =head2 load
+
+Loads new data into the hash.
+
+Data can be supplied as hashrefs with normal/local keys or composite keys, or both. Composite keys can 
+also be supplied as sub-keys and are resolved relative to the location in which they appear as one would 
+expect.
+
+Composite keys can aslo be supplied as simple strings w/o corresponding values in which case their value
+is set to whatever C<default_value> is set to (which defaults to 1).
+
+See the unit tests for more details and lots of examples of using C<load()>.
+
+=head2 set
+
+Simpler alternative to C<load()>. Expects exactly two arguments as standard key/values.
+
+=head2 resolve_key_path
+
+Converts a composite key string into its full path and returns it as a list. Called internally wherever
+composite keys are resolved.
+
+=head2 path_to_composit_key
+
+Inverse of C<resolve_key_path>; takes a path as a list and returns a single string (i.e. joins using the
+delimiters for each level. Obviously, it only returns full-qualified (not partial) composit keys.
+
+
 
 =head2 lookup
 
