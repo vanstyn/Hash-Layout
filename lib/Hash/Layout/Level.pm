@@ -15,7 +15,7 @@ has 'name',      is => 'ro', isa => Str, lazy => 1, default => sub {
 
 # Key names which we specifically expect to be at this level. This
 # is a mechanism to resolve default/pad ambiguity when resolving
-# composit key strings
+# composite key strings
 has 'registered_keys', is => 'ro', isa => Maybe[
   Map[Str,Bool]
 ], coerce => \&_coerce_list_hash, default => sub {undef};

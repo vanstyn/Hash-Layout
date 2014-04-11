@@ -59,21 +59,21 @@ is_deeply(
 
 
 is(
-  $HL->path_to_composit_key(qw(Film * column_info foo bar blah)),
+  $HL->path_to_composite_key(qw(Film * column_info foo bar blah)),
   "Film:*/column_info.foo.bar.blah",
-  'path_to_composit_key (1)'
+  'path_to_composite_key (1)'
 );
 
 is(
-  $HL->path_to_composit_key(qw(One Two Three)),
+  $HL->path_to_composite_key(qw(One Two Three)),
   "One:Two/Three",
-  'path_to_composit_key (2)'
+  'path_to_composite_key (2)'
 );
 
 is(
-  $HL->path_to_composit_key(qw(One Two Three Four Five Six)),
+  $HL->path_to_composite_key(qw(One Two Three Four Five Six)),
   "One:Two/Three.Four.Five.Six",
-  'path_to_composit_key (3)'
+  'path_to_composite_key (3)'
 );
 
 ok(

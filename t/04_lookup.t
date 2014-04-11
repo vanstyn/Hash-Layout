@@ -80,7 +80,6 @@ sub lookups1 {
       "*" => {
         foobar => "Film foobar"
       },
-      id => {},
       rental_rate => {
         foobar => "Film rental_rate foobar"
       }
@@ -94,7 +93,6 @@ sub lookups1 {
       "*" => {
         foobar => "Film foobar"
       },
-      id => {},
       rental_rate => {
         foobar => "Film rental_rate foobar"
       }
@@ -108,7 +106,6 @@ sub lookups1 {
       "*" => {
         foobar => "Film foobar"
       },
-      id => {},
       rental_rate => {
         foobar => "Film rental_rate foobar"
       }
@@ -346,7 +343,7 @@ is(
 is(
   $HL5->set( 'fruit/apple' => 'grape' )->get('fruit/apple'),
   'grape',
-  'chained set/get in one call (composit key)'
+  'chained set/get in one call (composite key)'
 );
 
 

@@ -2,7 +2,7 @@ package Hash::Layout;
 use strict;
 use warnings;
 
-# ABSTRACT: Deep hashes with predefined layouts
+# ABSTRACT: hashes with predefined layouts, composite keys and default values
 
 our $VERSION = 0.01;
 
@@ -38,7 +38,7 @@ has '_all_level_keys', is => 'ro', isa => HashRef, default => sub {{}}, init_arg
 # where the key is the default
 has '_def_key_bitmasks', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
 
-sub Data { (shift)->_Hash }
+sub Data { Clone::clone( (shift)->_Hash ) }
 
 sub level_keys {
   my ($self, $index) = @_;
@@ -190,7 +190,7 @@ sub get {
   return undef unless (defined $path[0]);
   
   @path = scalar(@path) > 1 
-    ? @path : $self->_is_composit_key($path[0])
+    ? @path : $self->_is_composite_key($path[0])
     ? $self->resolve_key_path($path[0]) : @path;
 
   return $self->get_path(@path);
@@ -271,11 +271,11 @@ sub _load {
   for my $arg (@args) {
     die "Undef keys are not allowed" unless (defined $arg);
     
-    my $force_composit = 0;
+    my $force_composite = 0;
     unless (ref $arg) {
       # hanging string/scalar, convert using default value
       $arg = { $arg => $self->default_value };
-      $force_composit = 1;
+      $force_composite = 1;
     }
     
     die "Cannot load non-hash reference!" unless (ref($arg) eq 'HASH');
@@ -287,7 +287,7 @@ sub _load {
       my $val = $arg->{$key};
       my $is_hashval = ref $val && ref($val) eq 'HASH';
       
-      if( $force_composit || $self->_is_composit_key($key,$index) ) {
+      if( $force_composite || $self->_is_composite_key($key,$index) ) {
         my $no_fill = $is_hashval;
         my @path = $self->resolve_key_path($key,$index,$no_fill);
         my $lkey = pop @path;
@@ -336,12 +336,12 @@ sub _load {
 }
 
 
-sub path_to_composit_key {
+sub path_to_composite_key {
   my ($self, @path) = @_;
-  return $self->_path_to_composit_key(0,@path);
+  return $self->_path_to_composite_key(0,@path);
 }
 
-sub _path_to_composit_key {
+sub _path_to_composite_key {
   my ($self, $index, @path) = @_;
 
   my $Lvl = $self->levels->[$index] or die "Bad level index '$index'";
@@ -355,7 +355,7 @@ sub _path_to_composit_key {
     my $key = shift @path;
     return scalar(@path) > 0 ? join(
       $Lvl->delimiter,$key,
-      $self->_path_to_composit_key($index+1,@path)
+      $self->_path_to_composite_key($index+1,@path)
     ) : join('',$key,$Lvl->delimiter);
   }
 }
@@ -403,7 +403,7 @@ sub _eval_key_path {
 
 # recursively scans the supplied key for any special delimiters defined
 # by any of the levels, or the deep delimiter, if deep values are enabled
-sub _is_composit_key {
+sub _is_composite_key {
   my ($self, $key, $index) = @_;
   $index ||= 0;
   
@@ -411,7 +411,7 @@ sub _is_composit_key {
 
   if ($Lvl) {
     return 0 if ($Lvl->registered_keys && $Lvl->registered_keys->{$key});
-    return $Lvl->_peel_str_key($key) || $self->_is_composit_key($key,$index+1);
+    return $Lvl->_peel_str_key($key) || $self->_is_composite_key($key,$index+1);
   }
   else {
     if($self->allow_deep_values) {
@@ -435,7 +435,7 @@ sub resolve_key_path {
   if ($Lvl) {
     my ($peeled,$leftover) = $Lvl->_peel_str_key($key);
     if($peeled) {
-      local $self->{_composit_key_peeled} = 1;
+      local $self->{_composite_key_peeled} = 1;
       # If a key was peeled, move on to the next level with leftovers:
       return ($peeled, $self->resolve_key_path($leftover,$index+1,$no_fill)) if ($leftover); 
       
@@ -448,7 +448,7 @@ sub resolve_key_path {
       # only if we're not already at the last level and 'no_fill' is not set
       # (and we've already peeled at least one key)
       my @path = $self->resolve_key_path($key,$index+1,$no_fill);
-      my $as_is = $last_level || ($no_fill && $self->{_composit_key_peeled});
+      my $as_is = $last_level || ($no_fill && $self->{_composite_key_peeled});
       return $self->no_pad || $as_is ? @path : ($self->default_key,@path);
     }
   }
@@ -514,16 +514,133 @@ __END__
 
 =head1 NAME
 
-Hash::Layout - Deep hashes with predefined layouts
+Hash::Layout - hashes with predefined layouts, composite keys and default values
 
 =head1 SYNOPSIS
 
  use Hash::Layout;
-
-
+ 
+ # Create new Hash::Layout object with 3 levels and unique delimiters:
+ my $HL = Hash::Layout->new({
+  levels => [
+    { delimiter => ':' },
+    { delimiter => '/' }, 
+    {}, # <-- last level never has a delimiter
+  ]
+ });
+ 
+ # load using actual hash structure:
+ $HL->load({
+   '*' => {
+     '*' => {
+       foo_rule => 'always deny',
+       blah     => 'thing'
+     },
+     NewYork => {
+       foo_rule => 'prompt'
+     }
+   }
+ });
+ 
+ # load using composite keys:
+ $HL->load({
+   'Office:NewYork/foo_rule' => 'allow',
+   'Store:*/foo_rule'        => 'other',
+   'Store:London/blah'       => 'purple'
+ });
+ 
+ 
+ my $hash = $HL->Data;
+ 
+ ## $hash now contains:
+ #
+ #    {
+ #      "*" => {
+ #        "*" => {
+ #          blah => "thing",
+ #          foo_rule => "always deny"
+ #        },
+ #        Lima => {},
+ #        NewYork => {
+ #          foo_rule => "prompt"
+ #        }
+ #      },
+ #      Office => {
+ #        NewYork => {
+ #          foo_rule => "allow"
+ #        }
+ #      },
+ #      Store => {
+ #        "*" => {
+ #          foo_rule => "other"
+ #        },
+ #        London => {
+ #          blah => "purple"
+ #        }
+ #      }
+ #    }
+ ##
+ 
+ 
+ # lookup values by composite key:
+ $HL->lookup('foo_rule')                  # 'always deny'
+ $HL->lookup('ABC:XYZ/foo_rule')          # 'always deny'  # (virtual/fallback)
+ $HL->lookup('Lima/foo_rule')             # 'always deny'  # (virtual/fallback)
+ $HL->lookup('NewYork/foo_rule')          # 'prompt'
+ $HL->lookup('Office:NewYork/foo_rule')   # 'allow'
+ $HL->lookup('Store:foo_rule')            # 'other'
+ 
 
 =head1 DESCRIPTION
 
+C<Hash::Layout> provides deep hashes with a predefined number of levels which you can access using
+"composite keys". These are essentially string paths that inflate into actual hash keys according
+to the defined levels and delimiter mappings, which can be the same or different for each level. 
+This is useful both for shorter keys as well as merge/fallback to default values, such as when 
+defining overlapping configs ranging from broad to narrowing scope (see example in SYNOPIS above).
 
+This module is general-purpose, but was written specifically for the flexible C<filter()> feature 
+of L<DBIx::Class::Schema::Diff>, so refer to its documentation as well for a real-world example 
+application. There are also lots of examples and use scenarios in the unit tests under C<t/>.
+
+=head1 METHODS
+
+=head2 new
+
+Create a new Hash::Layout instance. The following build options are supported:
+
+=over 4
+
+=item levels
+
+Required. ArrayRef of level config definitions, or a numeric number of levels for default level
+configs. Each level can define its own C<delimiter> and list of C<registered_keys>, both of which 
+are optional and are used to resolve composite key strings.
+
+=item default_value
+
+Value to assign keys when specified to C<load> as simple strings. Defaults to standard Boolean 1 for true.
+
+=item default_key
+
+Value to use for the key for levels which are not specified. Defaults to a single asterisk C<(*)>.
+
+=item allow_deep_values
+
+If true, values at the bottom level are allowed to be hashes, too. Defaults to 1.
+
+=item deep_delimiter
+
+When C<allow_deep_values> is enabled, the deep_delimiter character is used to resolve composite keys
+mapping into the deep hash values (i.e. beyond the predefined levels). Must be different from the 
+delimiter used by any of the levels. Defaults to a single dot C<(.)>.
+
+=back
+
+=head2 load
+
+=head2 lookup
+
+=head1 EXAMPLES
 
 =cut
