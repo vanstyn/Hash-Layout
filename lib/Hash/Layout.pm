@@ -640,7 +640,7 @@ configs. Each level can define its own C<delimiter> (except the last level) and 
 C<registered_keys>, both of which are optional and determine how ambiguous composite keys are resolved.
 
 Level-specific delimiters provide a mechanism to supply partial paths in composite keys but resolve
-to a specific level. The word/string to the left of a delimiter character that is specifc to a given level
+to a specific level. The word/string to the left of a delimiter character that is specific to a given level
 is resolved as the key of that level, however, the correct path order is required (keys are only tokenized
 in order from left to right).
 
@@ -654,12 +654,12 @@ C<levels> is the only required parameter.
 
 =item default_value
 
-Value to assign keys when supplied to C<load> as simple strings instead of key/value pairs. 
-Defaults to standard bool value C<1> for true.
+Value to assign keys when supplied to C<load()> as simple strings instead of key/value pairs. 
+Defaults to the standard bool/true value of C<1>.
 
 =item default_key
 
-Value to use for the key for levels which are not specified, as well as the key to use for fallback 
+Value to use for the key for levels which are not specified, as well as the key to use for default/fallback 
 when looking up non-existant keys (see also C<lookup_mode>). Defaults to a single asterisk C<(*)>.
 
 =item no_fill
@@ -676,17 +676,22 @@ explanation. Defaults to 0.
 
 =item allow_deep_values
 
-If true, values at the bottom level are allowed to be hashes, too. Defaults to 1.
+If true, values at the bottom level are allowed to be hashes, too, for the purposes of addressing
+the deeper paths using composite keys (see C<deep_delimiter> below). Defaults to 1.
 
 =item deep_delimiter
 
 When C<allow_deep_values> is enabled, the deep_delimiter character is used to resolve composite key
-mapping into the deep hash values (i.e. beyond the predefined levels). Must be different from the 
+mappings into the deep hash values (i.e. beyond the predefined levels). Must be different from the 
 delimiter used by any of the levels. Defaults to a single dot C<(.)>.
+
+For example:
+
+  $HL->lookup('something/foo.deeper.hash.path')
 
 =item lookup_mode
 
-One of either C<get>, C<fallback> or C<merge>. In C<fallback> mode, when a non-existant composite 
+One of either C<get>, C<fallback> or C<merge>. In C<fallback> mode, when a non-existent composite 
 key is looked up, the value of the first closest found key path using default keys is returned 
 instead of C<undef> as is the case with C<get> mode. C<merge> mode is like C<fallback> mode, except 
 hashref values are merged with matching default key paths which are also hashrefs. Defaults to C<merge>.
@@ -704,7 +709,7 @@ See unit tests for more info.
 
 =head2 coercer
 
-CodeRef wrapper around C<coerce()>, suitable for use in a L<Moo|Moo#has>-compatable attribute declaration
+CodeRef wrapper around C<coerce()>, suitable for use in a L<Moo|Moo#has>-compatible attribute declaration
 
 =head2 load
 
@@ -714,7 +719,7 @@ Data can be supplied as hashrefs with normal/local keys or composite keys, or bo
 also be supplied as sub-keys and are resolved relative to the location in which they appear as one would 
 expect.
 
-Composite keys can aslo be supplied as simple strings w/o corresponding values in which case their value
+Composite keys can also be supplied as simple strings w/o corresponding values in which case their value
 is set to whatever C<default_value> is set to (which defaults to 1).
 
 See the unit tests for more details and lots of examples of using C<load()>.
@@ -728,14 +733,49 @@ Simpler alternative to C<load()>. Expects exactly two arguments as standard key/
 Converts a composite key string into its full path and returns it as a list. Called internally wherever
 composite keys are resolved.
 
-=head2 path_to_composit_key
+=head2 path_to_composite_key
 
-Inverse of C<resolve_key_path>; takes a path as a list and returns a single string (i.e. joins using the
-delimiters for each level. Obviously, it only returns full-qualified (not partial) composit keys.
+Inverse of C<resolve_key_path>; takes a path as a list and returns a single composite key string (i.e. joins using the
+delimiters for each level. Obviously, it only returns fully-qualified, non-ambiguous (not partial) composite keys.
 
+=head2 exists_abs
 
+Returns true if the supplied composite key exists and false if it doesn't. Does not consider default/fallback
+key paths.
+
+=head2 exists_abs_path
+
+Like C<exists_abs()>, but requires the key to be supplied as a resolved/fully-qualified path as a list of arguments. 
+Used internally by C<exists_abs()>.
+
+=head2 get
+
+Retrieves the I<real> value of the supplied composite key, or false if it does not exist. Use C<exists_abs()> to 
+distinguish undef values. Does not consider default/fallback key paths (that is what C<lookup()> is for).
+
+=head2 get_path
+
+Like C<get()>, but requires the key to be supplied as a resolved/fully-qualified path as a list of arguments. 
+Used internally by C<get()>.
 
 =head2 lookup
+
+Returns the value of the supplied composite key, falling back to default key paths if it does not exist, 
+depending on the value of C<lookup_mode>.
+
+If the lookup_mode is set to C<'get'>, lookup() behaves exactly the same as get().
+
+If the lookup_mode is set to C<'fallback'> and the supplied key does not exist, lookup() will search the 
+hierarchy of matching default key paths, returning the first value that exists.
+
+If the lookup_mode is set to C<'merge'>, lookup() behaves the same as it does in C<'fallback'> mode for
+all non-hashref values. For hashref values, the hierarchy of default key paths is searched and all
+matches (that are themselves hashrefs), including the exact/lowest value itself, are merged and returned. 
+
+=head2 lookup_path
+
+Like C<lookup()>, but requires the key to be supplied as a resolved/fully-qualified path as a list of arguments. 
+Used internally by C<lookup()>.
 
 =head1 EXAMPLES
 
