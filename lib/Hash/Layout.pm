@@ -207,6 +207,17 @@ sub get_path {
   return $value;
 }
 
+sub exists_abs {
+  my ($self, @path) = @_;
+  return undef unless (defined $path[0]);
+  
+  @path = scalar(@path) > 1 
+    ? @path : $self->_is_composite_key($path[0])
+    ? $self->resolve_key_path($path[0]) : @path;
+
+  return $self->exists_abs_path(@path);
+}
+
 sub exists_abs_path {
   my ($self, @path) = @_;
   return 0 unless (defined $path[0]);
@@ -514,7 +525,7 @@ __END__
 
 =head1 NAME
 
-Hash::Layout - hashes with predefined layouts, composite keys and default values
+Hash::Layout - hashes with predefined levels, composite keys and default values
 
 =head1 SYNOPSIS
 
@@ -552,7 +563,7 @@ Hash::Layout - hashes with predefined layouts, composite keys and default values
  # load composite keys w/o values (uses default_value):
  $HL->load(qw/baz:bool_key flag01/);
  
- 
+ # get a copy of the hash data:
  my $hash = $HL->Data;
  
  #  $hash now contains:
