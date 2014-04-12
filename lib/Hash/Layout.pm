@@ -159,7 +159,7 @@ sub lookup_path {
   my @values = ();
   for my $dpath (@set) {
     $self->exists_path(@$dpath) or next;
-    my $val = $self->get(@$dpath);
+    my $val = $self->get_path(@$dpath);
     return $val unless ($self->lookup_mode eq 'merge');
     if (ref $val && ref($val) eq 'HASH') {
       # Set/merge hashes:
@@ -186,14 +186,13 @@ sub lookup_leaf_path {
 }
 
 sub get {
-  my ($self, @path) = @_;
-  return undef unless (defined $path[0]);
-  
-  @path = scalar(@path) > 1 
-    ? @path : $self->_is_composite_key($path[0])
-    ? $self->resolve_key_path($path[0]) : @path;
-
-  return $self->get_path(@path);
+  my ($self, $key_str, @addl) = @_;
+  return undef unless (defined $key_str);
+  die join(' ',
+    "get() expects a single composite key string argument",
+    "(did you mean to use 'get_path'?)" 
+  ) if (scalar(@addl) > 0);
+  return $self->get_path( $self->resolve_key_path($key_str) );
 }
 
 sub get_path {
@@ -208,14 +207,13 @@ sub get_path {
 }
 
 sub exists {
-  my ($self, @path) = @_;
-  return undef unless (defined $path[0]);
-  
-  @path = scalar(@path) > 1 
-    ? @path : $self->_is_composite_key($path[0])
-    ? $self->resolve_key_path($path[0]) : @path;
-
-  return $self->exists_path(@path);
+  my ($self, $key_str, @addl) = @_;
+  return undef unless (defined $key_str);
+  die join(' ',
+    "exists() expects a single composite key string argument",
+    "(did you mean to use 'exists_path'?)" 
+  ) if (scalar(@addl) > 0);
+  return $self->exists_path( $self->resolve_key_path($key_str) );
 }
 
 sub exists_path {
@@ -282,7 +280,8 @@ sub _load {
   for my $arg (@args) {
     die "Undef keys are not allowed" unless (defined $arg);
     
-    my $force_composite = 0;
+    my $force_composite = $self->{_force_composite} || 0;
+    local $self->{_force_composite} = 0; #<-- clear if set to prevetn deep recursion
     unless (ref $arg) {
       # hanging string/scalar, convert using default value
       $arg = { $arg => $self->default_value };
@@ -394,6 +393,7 @@ sub set {
   my ($self,$key,$value) = @_;
   die "bad number of arguments passed to set" unless (scalar(@_) == 3);
   die '$key value is required' unless ($key && $key ne '');
+  local $self->{_force_composite} = 1;
   $self->load({ $key => $value });
 }
 
@@ -792,7 +792,8 @@ Returns the number of levels defined for this C<Hash::Layout> instance.
 
 =head2 level_keys
 
-Returns an index of all the keys that have been loaded/exist for each level.
+Returns a hashref of all the keys that have been loaded/exist for the supplied level index (the first level
+is at index C<0>).
 
 =head2 def_key_bitmask_strings
 
