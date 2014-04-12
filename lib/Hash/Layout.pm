@@ -224,6 +224,39 @@ sub exists_path {
   return eval join('','exists $self->Data->',$ev_path);
 }
 
+sub delete {
+  my ($self, $key_str, @addl) = @_;
+  return undef unless (defined $key_str);
+  die join(' ',
+    "delete() expects a single composite key string argument",
+    "(did you mean to use 'delete_path'?)" 
+  ) if (scalar(@addl) > 0);
+  return $self->delete_path( $self->resolve_key_path($key_str) );
+}
+
+sub delete_path {
+  my ($self, @path) = @_;
+  return 0 unless (defined $path[0]);
+  
+  # TODO: should this die?
+  return undef unless ($self->exists_path(@path));
+  
+  my $data    = $self->Data; #<-- this is a *copy* of the data
+  my $ev_path = $self->_as_eval_path(@path);
+  
+  # Delete teh value from our copy:
+  my $ret; eval join('','$ret = delete $data->',$ev_path);
+  
+  # To delete safely, we actually have to reload all the data
+  # (except what is being deleted), from scratch. This is to
+  # make sure all the other indexes and counters remain in a
+  # consistent state:
+  $self->reset->load($data);
+  
+  # Return whatever was actually returned from the "real" delete:
+  return $ret;
+}
+
 # Use bitwise math to enumerate all possible prefix, default key paths:
 sub _enumerate_default_paths {
   my ($self, @path) = @_;
@@ -750,7 +783,7 @@ Used internally by C<exists()>.
 
 =head2 get
 
-Retrieves the I<real> value of the supplied composite key, or false if it does not exist. Use C<exists()> to 
+Retrieves the I<real> value of the supplied composite key, or undef if it does not exist. Use C<exists()> to 
 distinguish undef values. Does not consider default/fallback key paths (that is what C<lookup()> is for).
 
 =head2 get_path
@@ -781,6 +814,17 @@ Used internally by C<lookup()>.
 
 Like C<lookup_path()>, but only returns the value if it is a I<"leaf"> (i.e. not a hashref with deeper sub-values).
 Empty hashrefs (C<{}>) are also considered leaf values.
+
+=head2 delete
+
+Deletes the supplied composite key and returns the deleted value, or undef if it does not exist. 
+Does not consider default/fallback key paths, or delete multiple items at once (e.g. like the Linux C<rm> 
+command does with shell globs).
+
+=head2 delete_path
+
+Like C<delete()>, but requires the key to be supplied as a resolved/fully-qualified path as a list of arguments. 
+Used internally by C<delete()>.
 
 =head2 Data
 

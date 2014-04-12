@@ -245,4 +245,185 @@ is_deeply(
 );
 
 
+is_deeply(
+  [
+    scalar $HL2->delete_path('Album'),
+    $HL2->Data
+  ],
+  [
+    {
+      "*" => {
+        column_info => {
+          blah => 1
+        }
+      }
+    },
+    {
+      "*" => {
+        "*" => {
+          column_info => 1
+        }
+      },
+      Film => {
+        id => {
+          relationship_info => 1
+        },
+        rental_rate => {
+          column_info => {
+            foo => {
+              baz => 2,
+              blah => 1
+            }
+          }
+        }
+      }
+    }
+  ],
+  'delete_path (1)'
+);
+
+is_deeply(
+  [
+    scalar $HL2->delete('baz'),
+    $HL2->Data
+  ],
+  [
+    undef,
+    {
+      "*" => {
+        "*" => {
+          column_info => 1
+        }
+      },
+      Film => {
+        id => {
+          relationship_info => 1
+        },
+        rental_rate => {
+          column_info => {
+            foo => {
+              baz => 2,
+              blah => 1
+            }
+          }
+        }
+      }
+    }
+  ],
+  'delete (2) - deleted nothing'
+);
+
+is_deeply(
+  [
+    scalar $HL2->delete('column_info'),
+    $HL2->Data
+  ],
+  [
+    1,
+    {
+      "*" => {
+        "*" => {}
+      },
+      Film => {
+        id => {
+          relationship_info => 1
+        },
+        rental_rate => {
+          column_info => {
+            foo => {
+              baz => 2,
+              blah => 1
+            }
+          }
+        }
+      }
+    }
+  ],
+  'delete (3)'
+);
+
+is_deeply(
+  [
+    scalar $HL2->delete('Film:*/column_info.foo.baz'),
+    $HL2->Data
+  ],
+  [
+    undef,
+    {
+      "*" => {
+        "*" => {}
+      },
+      Film => {
+        id => {
+          relationship_info => 1
+        },
+        rental_rate => {
+          column_info => {
+            foo => {
+              baz => 2,
+              blah => 1
+            }
+          }
+        }
+      }
+    }
+  ],
+  'delete (4) - deleted nothing'
+);
+
+is_deeply(
+  [
+    scalar $HL2->delete('Film:rental_rate/column_info.foo.baz'),
+    $HL2->Data
+  ],
+  [
+    2,
+    {
+      "*" => {
+        "*" => {}
+      },
+      Film => {
+        id => {
+          relationship_info => 1
+        },
+        rental_rate => {
+          column_info => {
+            foo => {
+              blah => 1
+            }
+          }
+        }
+      }
+    }
+  ],
+  'delete (5)'
+);
+
+is_deeply(
+  [
+    scalar $HL2->delete_path(qw(Film rental_rate)),
+    $HL2->Data
+  ],
+  [
+    {
+      column_info => {
+        foo => {
+          blah => 1
+        }
+      }
+    },
+    {
+      "*" => {
+        "*" => {}
+      },
+      Film => {
+        id => {
+          relationship_info => 1
+        },
+      }
+    }
+  ],
+  'delete_path (6)'
+);
+
 done_testing;
