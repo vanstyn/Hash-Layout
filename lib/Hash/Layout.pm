@@ -777,6 +777,59 @@ matches (that are themselves hashrefs), including the exact/lowest value itself,
 Like C<lookup()>, but requires the key to be supplied as a resolved/fully-qualified path as a list of arguments. 
 Used internally by C<lookup()>.
 
+=head2 lookup_leaf_path
+
+Like C<lookup_path()>, but only returns the value if it is a I<"leaf"> (i.e. not a hashref with deeper sub-values).
+Empty hashrefs (C<{}>) are also considered leaf values.
+
+=head2 Data
+
+Returns a read-only (i.e. cloned) copy of the full loaded hash structure.
+
+=head2 num_levels
+
+Returns the number of levels defined for this C<Hash::Layout> instance.
+
+=head2 level_keys
+
+Returns an index of all the keys that have been loaded/exist for each level.
+
+=head2 def_key_bitmask_strings
+
+Debug method. Returns a list of all the default key paths as a list of bitmasks (in binary/string form).
+Any key path which has at least one default key at any level is considered a default path and is indexed
+as a bitmask, with '1' values representing the default key position(s). For instance, the key 
+path C<{*}{*}{foo_rule}> from the 3-level example from the SYNOPSIS is indexed as the bitmask C<110> (C<6> in decimal).
+
+These bitmasks are used internally to efficiently search for and properly order default key values 
+for quick fallback/merge lookups, even when there are a very large number of levels (and thus very, 
+VERY large number of possible default paths). That is why they are tracked and indexed ahead of time.
+
+This is a debug method which should not be needed to be used for any production code. I decided to leave
+it in just to help document some of the internal workings of this module.
+
+=head2 reset
+
+Clears and removes all loaded data and resets internal key indexes and counters.
+
 =head1 EXAMPLES
+
+For more examples, see the following:
+
+=over
+
+=item *
+
+The SYNOPSIS
+
+=item *
+
+The unit tests in C<t/>
+
+=item *
+
+L<DBIx::Class::Schema::Diff#filter>
+
+=back
 
 =cut
