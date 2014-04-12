@@ -144,7 +144,7 @@ sub lookup_path {
 
   # If the exact path is set and is NOT a hash (that may need merging),
   # return it outright:
-  if($self->exists_abs_path(@path)) {
+  if($self->exists_path(@path)) {
     my $val = $self->get_path(@path);
     return $val unless (
       ref $val && ref($val) eq 'HASH'
@@ -158,7 +158,7 @@ sub lookup_path {
   
   my @values = ();
   for my $dpath (@set) {
-    $self->exists_abs_path(@$dpath) or next;
+    $self->exists_path(@$dpath) or next;
     my $val = $self->get(@$dpath);
     return $val unless ($self->lookup_mode eq 'merge');
     if (ref $val && ref($val) eq 'HASH') {
@@ -207,7 +207,7 @@ sub get_path {
   return $value;
 }
 
-sub exists_abs {
+sub exists {
   my ($self, @path) = @_;
   return undef unless (defined $path[0]);
   
@@ -215,10 +215,10 @@ sub exists_abs {
     ? @path : $self->_is_composite_key($path[0])
     ? $self->resolve_key_path($path[0]) : @path;
 
-  return $self->exists_abs_path(@path);
+  return $self->exists_path(@path);
 }
 
-sub exists_abs_path {
+sub exists_path {
   my ($self, @path) = @_;
   return 0 unless (defined $path[0]);
 
@@ -738,19 +738,19 @@ composite keys are resolved.
 Inverse of C<resolve_key_path>; takes a path as a list and returns a single composite key string (i.e. joins using the
 delimiters for each level. Obviously, it only returns fully-qualified, non-ambiguous (not partial) composite keys.
 
-=head2 exists_abs
+=head2 exists
 
 Returns true if the supplied composite key exists and false if it doesn't. Does not consider default/fallback
 key paths.
 
-=head2 exists_abs_path
+=head2 exists_path
 
-Like C<exists_abs()>, but requires the key to be supplied as a resolved/fully-qualified path as a list of arguments. 
-Used internally by C<exists_abs()>.
+Like C<exists()>, but requires the key to be supplied as a resolved/fully-qualified path as a list of arguments. 
+Used internally by C<exists()>.
 
 =head2 get
 
-Retrieves the I<real> value of the supplied composite key, or false if it does not exist. Use C<exists_abs()> to 
+Retrieves the I<real> value of the supplied composite key, or false if it does not exist. Use C<exists()> to 
 distinguish undef values. Does not consider default/fallback key paths (that is what C<lookup()> is for).
 
 =head2 get_path
