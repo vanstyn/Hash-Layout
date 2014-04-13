@@ -2,6 +2,8 @@ package Hash::Layout::Level;
 use strict;
 use warnings;
 
+# VERSION
+
 use Moo;
 use Types::Standard qw(:all);
 
@@ -58,3 +60,71 @@ sub _coerce_list_hash {
 }
 
 1;
+
+__END__
+
+=pod
+
+=head1 NAME
+
+Hash::Layout::Level - Level definition object for Hash::Layout
+
+=head1 DESCRIPTION
+
+This class is used internally by L<Hash::Layout> and is not meant to be called directly. The list of
+hashrefs supplied to the L<levels|Hash::Layout#new> param in the C<Hash::Layout> constructor are each
+used as the constructor arguments passed to this class which create separate C<Hash::Layout::Level>
+objects for each level.
+
+Please refer to the main L<Hash::Layout> documentation for more info.
+
+=head1 ATTRIBUTES
+
+=head2 index
+
+The index value of the level (first level is at index C<0>). This is automatically supplied
+internally by C<Hash::Layout>.
+
+=head2 name
+
+An optional name/string value for this level. This is purely informational and is not currently
+being used for anything.
+
+=head2 delimiter
+
+The character (or string) that is used by L<Hash::Layout> when resolving composite key strings
+in to fully qualified key paths and identifying which part of the composite key should map to this level.
+
+Defaults to a single forward-slash (C</>).
+
+=head2 registered_keys
+
+An optional list (ArrayRef coerced into HashRef) of keys that are associated specifically with
+this level. Like C<delimiter>, this meta-data is used by L<Hash::Layout> purely for mapping the
+sub-strings of a composite key to a specific level.
+
+See the implementation of L<filter()|DBIx::Class::Schema::Diff#filter> in 
+L<DBIx::Class::Schema::Diff> for the best example of how C<registered_keys> can be used.
+
+=head1 SEE ALSO
+
+=over
+
+=item *
+
+L<Hash::Layout>
+
+=back
+
+=head1 AUTHOR
+
+Henry Van Styn <vanstyn@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2014 by IntelliTree Solutions llc.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=cut

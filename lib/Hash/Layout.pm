@@ -634,17 +634,19 @@ Hash::Layout - hashes with predefined levels, composite keys and default values
  #
  
  
- # lookup values by composite key:
- $HL->lookup('*:*/foo_rule')             # 'always deny'
- $HL->lookup('foo_rule')                 # 'always deny'
- $HL->lookup('ABC:XYZ/foo_rule')         # 'always deny'  # (virtual/fallback)
- $HL->lookup('Lima/foo_rule')            # 'always deny'  # (virtual/fallback)
- $HL->lookup('NewYork/foo_rule')         # 'prompt'
- $HL->lookup('Office:NewYork/foo_rule')  # 'allow'
- $HL->lookup('Store:foo_rule')           # 'other'
- $HL->lookup('baz:Anything/bool_key')    # 1              # (virtual/fallback)
+ # lookup values by composite keys:
+ $HL->lookup('*:*/foo_rule')              # 'always deny'
+ $HL->lookup('foo_rule')                  # 'always deny'
+ $HL->lookup('ABC:XYZ/foo_rule')          # 'always deny'  # (virtual/fallback)
+ $HL->lookup('Lima/foo_rule')             # 'always deny'  # (virtual/fallback)
+ $HL->lookup('NewYork/foo_rule')          # 'prompt'
+ $HL->lookup('Office:NewYork/foo_rule')   # 'allow'
+ $HL->lookup('Store:foo_rule')            # 'other'
+ $HL->lookup('baz:Anything/bool_key')     # 1              # (virtual/fallback)
  
- 
+ # lookup values by full/absolute paths:
+ $HL->lookup_path(qw/ABC XYZ foo_rule/)   # 'always deny'  # (virtual/fallback)
+ $HL->lookup_path(qw/Store * foo_rule/)   # 'other'
 
 =head1 DESCRIPTION
 
@@ -654,9 +656,10 @@ to the defined levels and delimiter mappings, which can be the same or different
 This is useful both for shorter keys as well as merge/fallback to default values, such as when 
 defining overlapping configs ranging from broad to narrowing scope (see example in SYNOPIS above).
 
-This module is general-purpose, but was written specifically for the flexible C<filter()> feature 
-of L<DBIx::Class::Schema::Diff>, so refer to its documentation as well for a real-world example 
-application. There are also lots of examples and use scenarios in the unit tests under C<t/>.
+This module is general-purpose, but was written specifically for the flexible 
+L<filter()|DBIx::Class::Schema::Diff#filter> feature of L<DBIx::Class::Schema::Diff>, 
+so refer to its documentation as well for a real-world example application. There are also lots of 
+examples and use scenarios in the unit tests under C<t/>.
 
 =head1 METHODS
 
@@ -670,7 +673,7 @@ Create a new Hash::Layout instance. The following build options are supported:
 
 Required. ArrayRef of level config definitions, or a numeric number of levels for default level
 configs. Each level can define its own C<delimiter> (except the last level) and list of 
-C<registered_keys>, both of which are optional and determine how ambiguous composite keys are resolved.
+C<registered_keys>, both of which are optional and determine how ambiguous/partial composite keys are resolved.
 
 Level-specific delimiters provide a mechanism to supply partial paths in composite keys but resolve
 to a specific level. The word/string to the left of a delimiter character that is specific to a given level
@@ -682,6 +685,27 @@ also only effects how ambiguity is resolved with partial composite keys. See als
 C<no_pad> options.
 
 See the unit tests for examples of exactly how this works.
+
+Internally, the level configs are coerced into L<Hash::Layout::Level> objects.
+
+For Hash::Layouts that don't need/want level-specific delimiters, or level-specific registered_keys,
+a simple integer value can be supplied instead for default level configs all using C</> as the delimiter.
+
+So, this:
+
+ my $HL = Hash::Layout->new({ levels => 5 });
+
+Is equivalent to:
+
+ $HL = Hash::Layout->new({
+  levels => [
+    { delimiter => '/' }
+    { delimiter => '/' }
+    { delimiter => '/' }
+    { delimiter => '/' }
+    {} #<-- last level never has a delimiter
+  ]
+ });
 
 C<levels> is the only required parameter.
 
@@ -769,7 +793,7 @@ composite keys are resolved.
 =head2 path_to_composite_key
 
 Inverse of C<resolve_key_path>; takes a path as a list and returns a single composite key string (i.e. joins using the
-delimiters for each level. Obviously, it only returns fully-qualified, non-ambiguous (not partial) composite keys.
+delimiters for each level). Obviously, it only returns fully-qualified, non-ambiguous (not partial) composite keys.
 
 =head2 exists
 
@@ -877,4 +901,16 @@ L<DBIx::Class::Schema::Diff#filter>
 
 =back
 
+=head1 AUTHOR
+
+Henry Van Styn <vanstyn@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2014 by IntelliTree Solutions llc.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
 =cut
+

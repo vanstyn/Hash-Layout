@@ -41,15 +41,6 @@ $HL->load({
 # load composite keys w/o values (uses default_value '1'):
 $HL->load(qw/baz:bool_key flag01/);
 
-# lookup values
-is($HL->lookup('*:*/foo_rule')              => 'always deny'         );
-is($HL->lookup('foo_rule')                  => 'always deny'         );
-is($HL->lookup('ABC:XYZ/foo_rule')          => 'always deny'         );
-is($HL->lookup('Lima/foo_rule')             => 'always deny'         );
-is($HL->lookup('NewYork/foo_rule')          => 'prompt'              );
-is($HL->lookup('Office:NewYork/foo_rule')   => 'allow'               );
-is($HL->lookup('Store:foo_rule')            => 'other'               );
-is($HL->lookup('baz:Anything/bool_key')     => 1                     );
 
 # get a copy of the hash data:
 my $hash = $HL->Data;
@@ -88,6 +79,20 @@ is_deeply(
   },
   "Data"
 );
+
+ # lookup values by composite keys:
+is($HL->lookup('*:*/foo_rule')              => 'always deny'         );
+is($HL->lookup('foo_rule')                  => 'always deny'         );
+is($HL->lookup('ABC:XYZ/foo_rule')          => 'always deny'         );
+is($HL->lookup('Lima/foo_rule')             => 'always deny'         );
+is($HL->lookup('NewYork/foo_rule')          => 'prompt'              );
+is($HL->lookup('Office:NewYork/foo_rule')   => 'allow'               );
+is($HL->lookup('Store:foo_rule')            => 'other'               );
+is($HL->lookup('baz:Anything/bool_key')     => 1                     );
+
+# lookup values by full/absolute paths:
+is($HL->lookup_path(qw/ABC XYZ foo_rule/)   => 'always deny'         );
+is($HL->lookup_path(qw/Store * foo_rule/)   => 'other'               );
 
 
 done_testing;
