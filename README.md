@@ -1,8 +1,8 @@
-# NAME
+## NAME
 
 Hash::Layout - hashes with predefined levels, composite keys and default values
 
-# SYNOPSIS
+## SYNOPSIS
 
     use Hash::Layout;
     
@@ -90,7 +90,7 @@ Hash::Layout - hashes with predefined levels, composite keys and default values
     $HL->lookup_path(qw/ABC XYZ foo_rule/)   # 'always deny'  # (virtual/fallback)
     $HL->lookup_path(qw/Store * foo_rule/)   # 'other'
 
-# DESCRIPTION
+## DESCRIPTION
 
 `Hash::Layout` provides deep hashes with a predefined number of levels which you can access using
 special "composite keys". These are essentially string paths that inflate into actual hash keys according
@@ -103,9 +103,9 @@ This module is general-purpose, but was written specifically for the flexible
 so refer to its documentation as well for a real-world example application. There are also lots of 
 examples and use scenarios in the unit tests under `t/`.
 
-# METHODS
+## METHODS
 
-## new
+### new
 
 Create a new Hash::Layout instance. The following build options are supported:
 
@@ -193,20 +193,20 @@ Create a new Hash::Layout instance. The following build options are supported:
     instead of `undef` as is the case with `get` mode. `merge` mode is like `fallback` mode, except 
     hashref values are merged with matching default key paths which are also hashrefs. Defaults to `merge`.
 
-## clone
+### clone
 
 Returns a new/cloned `Hash::Layout` instance
 
-## coerce
+### coerce
 
 Dynamic method coerces supplied value into a new `Hash::Layout` instance with a new set of loaded data. 
 See unit tests for more info.
 
-## coercer
+### coercer
 
 CodeRef wrapper around `coerce()`, suitable for use in a [Moo](https://metacpan.org/pod/Moo#has)-compatible attribute declaration
 
-## load
+### load
 
 Loads new data into the hash.
 
@@ -219,41 +219,41 @@ is set to whatever `default_value` is set to (which defaults to 1).
 
 See the unit tests for more details and lots of examples of using `load()`.
 
-## set
+### set
 
 Simpler alternative to `load()`. Expects exactly two arguments as standard key/values.
 
-## resolve\_key\_path
+### resolve\_key\_path
 
 Converts a composite key string into its full path and returns it as a list. Called internally wherever
 composite keys are resolved.
 
-## path\_to\_composite\_key
+### path\_to\_composite\_key
 
 Inverse of `resolve_key_path`; takes a path as a list and returns a single composite key string (i.e. joins using the
 delimiters for each level). Obviously, it only returns fully-qualified, non-ambiguous (not partial) composite keys.
 
-## exists
+### exists
 
 Returns true if the supplied composite key exists and false if it doesn't. Does not consider default/fallback
 key paths.
 
-## exists\_path
+### exists\_path
 
 Like `exists()`, but requires the key to be supplied as a resolved/fully-qualified path as a list of arguments. 
 Used internally by `exists()`.
 
-## get
+### get
 
 Retrieves the _real_ value of the supplied composite key, or undef if it does not exist. Use `exists()` to 
 distinguish undef values. Does not consider default/fallback key paths (that is what `lookup()` is for).
 
-## get\_path
+### get\_path
 
 Like `get()`, but requires the key to be supplied as a resolved/fully-qualified path as a list of arguments. 
 Used internally by `get()`.
 
-## lookup
+### lookup
 
 Returns the value of the supplied composite key, falling back to default key paths if it does not exist, 
 depending on the value of `lookup_mode`.
@@ -267,41 +267,41 @@ If the lookup\_mode is set to `'merge'`, lookup() behaves the same as it does in
 all non-hashref values. For hashref values, the hierarchy of default key paths is searched and all
 matches (that are themselves hashrefs), including the exact/lowest value itself, are merged and returned. 
 
-## lookup\_path
+### lookup\_path
 
 Like `lookup()`, but requires the key to be supplied as a resolved/fully-qualified path as a list of arguments. 
 Used internally by `lookup()`.
 
-## lookup\_leaf\_path
+### lookup\_leaf\_path
 
 Like `lookup_path()`, but only returns the value if it is a _"leaf"_ (i.e. not a hashref with deeper sub-values).
 Empty hashrefs (`{}`) are also considered leaf values.
 
-## delete
+### delete
 
 Deletes the supplied composite key and returns the deleted value, or undef if it does not exist. 
 Does not consider default/fallback key paths, or delete multiple items at once (e.g. like the Linux `rm` 
 command does with shell globs).
 
-## delete\_path
+### delete\_path
 
 Like `delete()`, but requires the key to be supplied as a resolved/fully-qualified path as a list of arguments. 
 Used internally by `delete()`.
 
-## Data
+### Data
 
 Returns a read-only (i.e. cloned) copy of the full loaded hash structure.
 
-## num\_levels
+### num\_levels
 
 Returns the number of levels defined for this `Hash::Layout` instance.
 
-## level\_keys
+### level\_keys
 
 Returns a hashref of all the keys that have been loaded/exist for the supplied level index (the first level
 is at index `0`).
 
-## def\_key\_bitmask\_strings
+### def\_key\_bitmask\_strings
 
 Debug method. Returns a list of all the default key paths as a list of bitmasks (in binary/string form).
 Any key path which has at least one default key at any level is considered a default path and is indexed
@@ -315,11 +315,11 @@ VERY large number of possible default paths). That is why they are tracked and i
 This is a debug method which should not be needed to be used for any production code. I decided to leave
 it in just to help document some of the internal workings of this module.
 
-## reset
+### reset
 
 Clears and removes all loaded data and resets internal key indexes and counters.
 
-# EXAMPLES
+## EXAMPLES
 
 For more examples, see the following:
 
@@ -327,11 +327,11 @@ For more examples, see the following:
 - The unit tests in `t/`
 - [DBIx::Class::Schema::Diff#filter](https://metacpan.org/pod/DBIx::Class::Schema::Diff#filter)
 
-# AUTHOR
+## AUTHOR
 
 Henry Van Styn <vanstyn@cpan.org>
 
-# COPYRIGHT AND LICENSE
+## COPYRIGHT AND LICENSE
 
 This software is copyright (c) 2014 by IntelliTree Solutions llc.
 
