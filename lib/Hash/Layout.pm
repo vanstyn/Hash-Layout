@@ -121,16 +121,14 @@ sub coerce {
   return scalar(@args) > 0 ? $new->load(@args) : $new;
 }
 
-
 sub lookup {
-  my ($self, @path) = @_;
-   # lookup() is the same as get() when lookup_mode is 'get':
-  return $self->get(@path) if ($self->lookup_mode eq 'get');
-  
-  return undef unless (defined $path[0]);
-  @path = scalar(@path) > 1 ? @path : $self->resolve_key_path($path[0]);
-
-  return $self->lookup_path(@path);
+  my ($self, $key_str, @addl) = @_;
+  return undef unless (defined $key_str);
+  die join(' ',
+    "lookup() expects a single composite key string argument",
+    "(did you mean to use 'lookup_path'?)" 
+  ) if (scalar(@addl) > 0);
+  return $self->lookup_path( $self->resolve_key_path($key_str) );
 }
 
 sub lookup_path {

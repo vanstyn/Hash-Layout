@@ -57,9 +57,9 @@ sub lookups1 {
   );
   
   is_deeply(
-    $HL1->lookup('Film','rental_rate'),
+    $HL1->lookup_path('Film','rental_rate'),
     { foobar => "Film rental_rate foobar" },
-    "lookup (6)"
+    "lookup_path (6)"
   );
   
   is_deeply(
