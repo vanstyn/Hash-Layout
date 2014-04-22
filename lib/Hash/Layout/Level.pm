@@ -2,7 +2,7 @@ package Hash::Layout::Level;
 use strict;
 use warnings;
 
-# VERSION
+# ABSTRACT: Level definition object for Hash::Layout
 
 use Moo;
 use Types::Standard qw(:all);
