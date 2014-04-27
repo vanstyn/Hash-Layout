@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Test::More;
 
-plan skip_all => 'set TEST_POD to enable this test' unless $ENV{TEST_POD};
+plan skip_all => 'set RELEASE_TESTING to enable this test' unless $ENV{RELEASE_TESTING};
 
 eval "use Test::Pod::Coverage 1.04";
 plan skip_all => 'Test::Pod::Coverage 1.04 required' if $@;
