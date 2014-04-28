@@ -344,7 +344,7 @@ sub _load {
       else {
       
         local $self->{_path_bitmask} = $self->{_path_bitmask};
-        my $bm = 0; $self->{_path_bitmask} //= \$bm;
+        my $bm = 0; $self->{_path_bitmask} ||= \$bm;
         my $bmref = $self->{_path_bitmask};
         if($key eq $self->default_key) {
           my $depth = 2**($self->num_levels);
@@ -410,7 +410,7 @@ sub _init_hash_path {
   my $ev_path = $self->_as_eval_path( @path );
   
   my $hval;
-  eval join('','$hash->',$ev_path,' //= {}');
+  eval join('','$hash->',$ev_path,' ||= {}');
   eval join('','$hval = $hash->',$ev_path);
   eval join('','$hash->',$ev_path,' = {}') unless (
     ref $hval && ref($hval) eq 'HASH'
