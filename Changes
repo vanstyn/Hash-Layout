@@ -1,4 +1,7 @@
 Revision history for perl module Hash::Layout
 
+1.01 2014-04-27
+    - Added support for perl 5.8
+
 1.00 2014-04-22
     - Initial release
