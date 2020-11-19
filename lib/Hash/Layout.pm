@@ -31,6 +31,7 @@ has 'lookup_mode', is => 'rw', isa => Enum[qw(get fallback merge)],
   default => sub { 'merge' };
 
 has '_Hash', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
+has '_Hash_fq_composite', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
 has '_all_level_keys', is => 'ro', isa => HashRef, default => sub {{}}, init_arg => undef;
 
 # List of bitmasks representing every key path which includes
@@ -54,9 +55,10 @@ sub level_keys {
 # Clears the Hash of any existing data
 sub reset {
   my $self = shift;
-  %{$self->_Hash}             = ();
-  %{$self->_all_level_keys}   = ();
-  %{$self->_def_key_bitmasks} = ();
+  %{$self->_Hash}              = ();
+  %{$self->_Hash_fq_composite} = ();
+  %{$self->_all_level_keys}    = ();
+  %{$self->_def_key_bitmasks}  = ();
   return $self;
 }
 
@@ -131,8 +133,10 @@ sub lookup {
   return $self->lookup_path( $self->resolve_key_path($key_str) );
 }
 
+
 sub lookup_path {
   my ($self, @path) = @_;
+
    # lookup_path() is the same as get_path() when lookup_mode is 'get':
   return $self->get_path(@path) if ($self->lookup_mode eq 'get');
   
@@ -299,7 +303,9 @@ sub _enumerate_default_paths {
 
 sub load {
   my $self = shift;
-  return $self->_load(0,$self->_Hash,@_);
+
+  local $self->{_fq_composite_prefix} = '';
+  $self->_load(0,$self->_Hash,@_);
 }
 
 sub _load {
@@ -324,7 +330,15 @@ sub _load {
     for my $key (keys %$arg) {
       die "Only scalar/string keys are allowed" 
         unless (defined $key && ! ref($key));
+
+      local $self->{_fq_composite_prefix} = $self->{_fq_composite_prefix} // undef;
+
+      my $c_key = defined $self->{_fq_composite_prefix} 
+        ? join('',$self->{_fq_composite_prefix},$key)
+        : undef;
         
+      $self->{_fq_composite_prefix} = join('',$c_key,($Lvl->delimiter||'')) if ($c_key);
+
       my $val = $arg->{$key};
       my $is_hashval = ref $val && ref($val) eq 'HASH';
       
@@ -364,6 +378,7 @@ sub _load {
         }
         else {
           $noderef->{$key} = $val;
+          $self->_Hash_fq_composite->{$c_key} = $val if ($c_key);
         }
         
         if($index == 0 && $$bmref) {
