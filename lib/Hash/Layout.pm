@@ -11,6 +11,7 @@ use Types::Standard qw(:all);
 use Scalar::Util qw(blessed looks_like_number);
 use Hash::Merge::Simple 'merge';
 use Clone;
+use Text::Glob qw( match_glob );
 
 use Hash::Layout::Level;
 
@@ -26,6 +27,7 @@ has 'allow_deep_values', is => 'ro', isa => Bool, default => sub { 1 };
 has 'deep_delimiter',    is => 'ro', isa => Str,  default => sub { '.' };
 has 'no_fill',           is => 'ro', isa => Bool, default => sub { 0 };
 has 'no_pad',            is => 'ro', isa => Bool, default => sub { 0 };
+has 'enable_globmatch',  is => 'ro', isa => Bool, default => sub { 1 };
 
 has 'lookup_mode', is => 'rw', isa => Enum[qw(get fallback merge)], 
   default => sub { 'merge' };
@@ -55,10 +57,11 @@ sub level_keys {
 # Clears the Hash of any existing data
 sub reset {
   my $self = shift;
-  %{$self->_Hash}              = ();
-  %{$self->_Hash_fq_composite} = ();
-  %{$self->_all_level_keys}    = ();
-  %{$self->_def_key_bitmasks}  = ();
+  %{$self->_Hash}                 = ();
+  %{$self->_Hash_fq_composite}    = ();
+  %{$self->_all_level_keys}       = ();
+  %{$self->_def_key_bitmasks}     = ();
+  $self->{_lookup_path_globmatch} = {};
   return $self;
 }
 
@@ -187,6 +190,24 @@ sub lookup_leaf_path {
   return (ref $v && ref($v) eq 'HASH' && scalar(keys %$v) > 0) ? undef : $v; 
 }
 
+sub lookup_path_globmatch {
+  my ($self, @path) = @_;
+  return undef unless ($self->enable_globmatch);
+  my $key_str = scalar(@path) == 1 ? $path[0] : $self->path_to_composite_key(@path);
+  $self->{_lookup_path_globmatch}{$key_str} //= do {
+    my $value = undef;
+    for my $c_key (keys %{$self->_Hash_fq_composite}) {
+      if(match_glob($c_key,$key_str)) {
+        $value = $self->_Hash_fq_composite->{$c_key};
+        last
+      }
+    }
+    $value
+  }
+}
+
+
+
 sub get {
   my ($self, $key_str, @addl) = @_;
   return undef unless (defined $key_str);
@@ -197,6 +218,8 @@ sub get {
   return $self->get_path( $self->resolve_key_path($key_str) );
 }
 
+
+
 sub get_path {
   my ($self, @path) = @_;
   return undef unless (defined $path[0]);
@@ -205,7 +228,7 @@ sub get_path {
   my $ev_path = $self->_as_eval_path(@path);
   eval join('','$value = $self->Data->',$ev_path);
   
-  return $value;
+  $value || $self->lookup_path_globmatch(@path)
 }
 
 sub exists {
@@ -223,7 +246,8 @@ sub exists_path {
   return 0 unless (defined $path[0]);
 
   my $ev_path = $self->_as_eval_path(@path);
-  return eval join('','exists $self->Data->',$ev_path);
+  return 1 if (eval join('','exists $self->Data->',$ev_path));
+  $self->lookup_path_globmatch(@path) ? 1 : 0
 }
 
 sub delete {
@@ -304,12 +328,14 @@ sub _enumerate_default_paths {
 sub load {
   my $self = shift;
 
-  local $self->{_fq_composite_prefix} = '';
   $self->_load(0,$self->_Hash,@_);
 }
 
 sub _load {
   my ($self, $index, $noderef, @args) = @_;
+  
+  local $self->{_fq_composite_prefix} = $self->{_fq_composite_prefix} || undef;
+  $self->{_fq_composite_prefix} = '' if ($index == 0);
   
   my $Lvl = $self->levels->[$index] or die "Bad level index '$index'";
   my $last_level = ! $self->levels->[$index+1];
@@ -320,6 +346,7 @@ sub _load {
     my $force_composite = $self->{_force_composite} || 0;
     local $self->{_force_composite} = 0; #<-- clear if set to prevetn deep recursion
     unless (ref $arg) {
+      $self->_Hash_fq_composite->{$arg} = $self->default_value;
       # hanging string/scalar, convert using default value
       $arg = { $arg => $self->default_value };
       $force_composite = 1;
@@ -330,14 +357,14 @@ sub _load {
     for my $key (keys %$arg) {
       die "Only scalar/string keys are allowed" 
         unless (defined $key && ! ref($key));
-
-      local $self->{_fq_composite_prefix} = $self->{_fq_composite_prefix} // undef;
-
-      my $c_key = defined $self->{_fq_composite_prefix} 
-        ? join('',$self->{_fq_composite_prefix},$key)
-        : undef;
-        
-      $self->{_fq_composite_prefix} = join('',$c_key,($Lvl->delimiter||'')) if ($c_key);
+      
+      my $c_key = undef;
+      local $self->{_fq_composite_prefix} = $self->{_fq_composite_prefix};
+      if(defined $self->{_fq_composite_prefix}) {
+        $c_key = join('',$self->{_fq_composite_prefix},$key);
+        $self->{_fq_composite_prefix} = $c_key;
+        $self->{_fq_composite_prefix} .= $Lvl->delimiter if ($Lvl->delimiter);
+      }
 
       my $val = $arg->{$key};
       my $is_hashval = ref $val && ref($val) eq 'HASH';
