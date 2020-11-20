@@ -27,7 +27,7 @@ has 'allow_deep_values', is => 'ro', isa => Bool, default => sub { 1 };
 has 'deep_delimiter',    is => 'ro', isa => Str,  default => sub { '.' };
 has 'no_fill',           is => 'ro', isa => Bool, default => sub { 0 };
 has 'no_pad',            is => 'ro', isa => Bool, default => sub { 0 };
-has 'enable_globmatch',  is => 'ro', isa => Bool, default => sub { 1 };
+has 'enable_globmatch',  is => 'ro', isa => Bool, default => sub { 0 };
 
 has 'lookup_mode', is => 'rw', isa => Enum[qw(get fallback merge)], 
   default => sub { 'merge' };
@@ -190,9 +190,13 @@ sub lookup_leaf_path {
   return (ref $v && ref($v) eq 'HASH' && scalar(keys %$v) > 0) ? undef : $v; 
 }
 
+sub _lookup_path_globmatch {
+  my $self = shift;
+  $self->enable_globmatch ? $self->lookup_path_globmatch(@_) : undef
+}
+
 sub lookup_path_globmatch {
   my ($self, @path) = @_;
-  return undef unless ($self->enable_globmatch);
   my $key_str = scalar(@path) == 1 ? $path[0] : $self->path_to_composite_key(@path);
   $self->{_lookup_path_globmatch}{$key_str} //= do {
     my $value = undef;
@@ -228,7 +232,7 @@ sub get_path {
   my $ev_path = $self->_as_eval_path(@path);
   eval join('','$value = $self->Data->',$ev_path);
   
-  $value || $self->lookup_path_globmatch(@path)
+  $value || $self->_lookup_path_globmatch(@path)
 }
 
 sub exists {
@@ -247,7 +251,7 @@ sub exists_path {
 
   my $ev_path = $self->_as_eval_path(@path);
   return 1 if (eval join('','exists $self->Data->',$ev_path));
-  $self->lookup_path_globmatch(@path) ? 1 : 0
+  $self->_lookup_path_globmatch(@path) ? 1 : 0
 }
 
 sub delete {
@@ -406,6 +410,7 @@ sub _load {
         else {
           $noderef->{$key} = $val;
           $self->_Hash_fq_composite->{$c_key} = $val if ($c_key);
+          $self->_Hash_fq_composite->{$self->{_fq_composite_prefix}.$val} = $self->default_value
         }
         
         if($index == 0 && $$bmref) {
