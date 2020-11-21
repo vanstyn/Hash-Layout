@@ -4,7 +4,7 @@ use warnings;
 
 # ABSTRACT: hashes with predefined layouts, composite keys and default values
 
-our $VERSION = 1.02_01;
+our $VERSION = 1.02_02;
 
 use Moo;
 use Types::Standard qw(:all);
@@ -410,7 +410,6 @@ sub _load {
         else {
           $noderef->{$key} = $val;
           $self->_Hash_fq_composite->{$c_key} = $val if ($c_key);
-          $self->_Hash_fq_composite->{$self->{_fq_composite_prefix}.$val} = $self->default_value
         }
         
         if($index == 0 && $$bmref) {
