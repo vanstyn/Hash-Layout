@@ -4,7 +4,7 @@ use warnings;
 
 # ABSTRACT: hashes with predefined layouts, composite keys and default values
 
-our $VERSION = 1.02_02;
+our $VERSION = 1.02_04;
 
 use Moo;
 use Types::Standard qw(:all);
@@ -201,6 +201,7 @@ sub lookup_path_globmatch {
   $self->{_lookup_path_globmatch}{$key_str} //= do {
     my $value = undef;
     for my $c_key (keys %{$self->_Hash_fq_composite}) {
+      local $Text::Glob::strict_wildcard_slash = 0;
       if(match_glob($c_key,$key_str)) {
         $value = $self->_Hash_fq_composite->{$c_key};
         last
