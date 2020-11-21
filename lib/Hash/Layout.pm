@@ -798,6 +798,11 @@ key is looked up, the value of the first closest found key path using default ke
 instead of C<undef> as is the case with C<get> mode. C<merge> mode is like C<fallback> mode, except 
 hashref values are merged with matching default key paths which are also hashrefs. Defaults to C<merge>.
 
+=item enable_globmatch
+
+If true, key value lookup calls will automatically try to match wildcard (text glob) expressions.
+Defaults to false (0).
+
 =back
 
 =head2 clone
@@ -883,6 +888,12 @@ Used internally by C<lookup()>.
 
 Like C<lookup_path()>, but only returns the value if it is a I<"leaf"> (i.e. not a hashref with deeper sub-values).
 Empty hashrefs (C<{}>) are also considered leaf values.
+
+=head2 lookup_path_globmatch
+
+Like C<lookup_path()>, but matches/returns by comparing a full composite key string with wildcard (text glob)
+expressions.
+
 
 =head2 delete
 
