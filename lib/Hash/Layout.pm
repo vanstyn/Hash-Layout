@@ -4,7 +4,7 @@ use warnings;
 
 # ABSTRACT: hashes with predefined layouts, composite keys and default values
 
-our $VERSION = 1.02_04;
+our $VERSION = '2.00';
 
 use Moo;
 use Types::Standard qw(:all);
